@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-DOTFILES_DIR="$(pwd)" # assume you run install.sh from cloned repo
+DOTFILES_DIR="/usr/share/fastsetup"
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
 
 echo ">>> Backing up old configs to $BACKUP_DIR"
