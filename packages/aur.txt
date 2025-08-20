@@ -1,0 +1,6 @@
+grub-theme-minegrub-world-selection-git
+hyde-cli-git
+python-pyamdgpuinfo
+swaylock-effects-git
+trash-cli-git
+yay-debug
