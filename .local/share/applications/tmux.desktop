@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=tmux
-Comment=tmux coding session
-Exec=/home/yash/myApps/tmux.sh
-Icon=/home/yash/myIcons/tmux.png
-Terminal=true
-Type=Application
-Categories=Utility;Development;

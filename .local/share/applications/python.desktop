@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Python
-Comment=Python Directory
-Exec=/home/yash/myApps/python.sh
-Icon=/home/yash/myIcons/python.png
-Terminal=true
-Type=Application
-Categories=Utility;Development;
