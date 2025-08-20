@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- paths ---
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
+PKGLIST="$DOTFILES_DIR/packages/pkglist.txt"
 
 echo ">>> Backups -> $BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
@@ -41,48 +43,46 @@ need git
 
 # --- update system first ---
 echo ">>> Updating system..."
-sudo pacman -Syu --noconfirm
+sudo pacman -Sy --noconfirm
+sudo pacman -Su --noconfirm
 
-# --- bootstrap yay ---
+# --- bootstrap yay if missing ---
 if ! command -v yay &>/dev/null; then
   echo ">>> Installing yay..."
   sudo pacman -S --needed --noconfirm base-devel git
   rm -rf /tmp/yay
   git clone https://aur.archlinux.org/yay.git /tmp/yay
   (cd /tmp/yay && makepkg -si --noconfirm)
+  rm -rf /tmp/yay
 fi
 
-# --- install packages ---
+# --- read packages ---
 PACMAN_PKGS=()
 AUR_PKGS=()
 
 while read -r pkg; do
-  # skip empty lines and comments
   [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
-
-  # check if pacman knows it
   if pacman -Si "$pkg" &>/dev/null; then
     PACMAN_PKGS+=("$pkg")
   else
     AUR_PKGS+=("$pkg")
   fi
-done <"$DOTFILES_DIR/packages/pkglist.txt"
+done <"$PKGLIST"
 
-# install pacman packages
+# --- install pacman packages ---
 if ((${#PACMAN_PKGS[@]})); then
   echo ">>> Installing pacman packages..."
   sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
 fi
 
-# install AUR packages
+# --- install AUR packages ---
 if ((${#AUR_PKGS[@]})); then
   echo ">>> Installing AUR packages..."
   yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 fi
 
-# --- deploy dotfiles (merge + backup) ---
+# --- deploy dotfiles ---
 echo ">>> Deploying dotfiles (merge mode)"
-
 backup_path ".zshrc"
 safe_sync "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 
@@ -114,6 +114,14 @@ if [ -d "$DOTFILES_DIR/myApps" ]; then
   if ! grep -q 'export PATH="$HOME/myApps:$PATH"' "$HOME/.zshrc" 2>/dev/null; then
     echo 'export PATH="$HOME/myApps:$PATH"' >>"$HOME/.zshrc"
   fi
+fi
+
+# zsh plugins (after AUR)
+if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
+  mkdir -p "$HOME/.oh-my-zsh/custom/plugins"
+  for plugin in "$DOTFILES_DIR/.zsh_plugins"/*; do
+    safe_sync "$plugin" "$HOME/.oh-my-zsh/custom/plugins/$(basename $plugin)"
+  done
 fi
 
 echo "✅ Done. Backups at: $BACKUP_DIR"
