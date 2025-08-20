@@ -37,6 +37,16 @@ safe_sync() {
   fi
 }
 
+enable_service() {
+  local svc=$1
+  if systemctl list-unit-files | grep -q "^${svc}"; then
+    echo ">>> Enabling $svc"
+    sudo systemctl enable --now "$svc"
+  else
+    echo ">>> Service $svc not found, skipping"
+  fi
+}
+
 # --- ensure basic tools ---
 need rsync
 need git
@@ -124,4 +134,12 @@ if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
   done
 fi
 
+# --- enable important system services ---
+services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service)
+
+for svc in "${services[@]}"; do
+  enable_service "$svc"
+done
+
 echo "✅ Done. Backups at: $BACKUP_DIR"
+echo ">>> System services enabled and packages installed."
