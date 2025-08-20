@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=hyprland
+Comment=hyprland config
+Exec=/home/yash/myApps/hypr.sh
+Icon=/home/yash/myIcons/hyprland.png
+Terminal=true
+Type=Application
+Categories=Utility;Development;

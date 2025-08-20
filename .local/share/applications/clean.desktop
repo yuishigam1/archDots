@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=clean
+Comment=clean arch
+Exec=/home/yash/myApps/clean_arch.sh
+Icon=/home/yash/myIcons/clean_arch.png
+Terminal=true
+Type=Application
+Categories=Utility;Development;

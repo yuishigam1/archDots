@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Name=ChatGPT
+Comment=Web App
+Exec=sh -c 'XAPP_FORCE_GTKWINDOW_ICON="/home/yash/myIcons/chatgpt.png" firefox --class WebApp-ChatGPT9866 --name WebApp-ChatGPT9866 --profile /home/yash/.local/share/ice/firefox/ChatGPT9866 --no-remote "https://chatgpt.com/"'
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=/home/yash/myIcons/chatgpt.png
+Categories=GTK;WebApps;
+MimeType=text/html;text/xml;application/xhtml_xml;
+StartupWMClass=WebApp-ChatGPT9866
+StartupNotify=true
+X-WebApp-Browser=Firefox
+X-WebApp-URL=https://chatgpt.com/
+X-WebApp-CustomParameters=
+X-WebApp-Navbar=false
+X-WebApp-PrivateWindow=false
+X-WebApp-Isolated=true
+

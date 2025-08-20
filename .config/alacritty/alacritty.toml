@@ -1,0 +1,95 @@
+[[keyboard.bindings]]
+action = "Paste"
+key = "V"
+mods = "Control|Shift"
+
+[[keyboard.bindings]]
+action = "Copy"
+key = "C"
+mods = "Control|Shift"
+
+[[keyboard.bindings]]
+action = "SpawnNewInstance"
+key = "N"
+mods = "Control|Shift"
+
+[[keyboard.bindings]]
+action = "IncreaseFontSize"
+key = "Equals"
+mods = "Control"
+
+[[keyboard.bindings]]
+action = "DecreaseFontSize"
+key = "Minus"
+mods = "Control"
+
+[[keyboard.bindings]]
+action = "ResetFontSize"
+key = "Key0"
+mods = "Control"
+
+[terminal]
+
+[colors.bright]
+black = "0x4d4d4d"
+blue = "0xd6acff"
+cyan = "0xa4ffff"
+green = "0x69ff94"
+magenta = "0xff92df"
+red = "0xff6e6e"
+white = "0xffffff"
+yellow = "0xffffa5"
+
+[colors.cursor]
+cursor = "0xf8f8f2"
+text = "0x282a36"
+
+[colors.normal]
+black = "0x21222c"
+blue = "0xbd93f9"
+cyan = "0x8be9fd"
+green = "0x50fa7b"
+magenta = "0xff79c6"
+red = "0xff5555"
+white = "0xbfbfbf"
+yellow = "0xf1fa8c"
+
+[colors.primary]
+background = "0x282a36"
+foreground = "0xf8f8f2"
+
+[cursor]
+style = "Beam"
+unfocused_hollow = true
+
+[font]
+size = 10.0
+
+[font.bold]
+family = "JetBrainsMono Nerd Font"
+style = "Bold"
+
+[font.italic]
+family = "JetBrainsMono Nerd Font"
+style = "Italic"
+
+[font.normal]
+family = "JetBrainsMono Nerd Font"
+style = "Regular"
+
+[scrolling]
+history = 10000
+multiplier = 3
+
+[window]
+decorations = "full"
+dynamic_padding = true
+opacity = 1.0
+
+[window.padding]
+x = 12
+y = 12
+
+[keyboard]
+[terminal.shell]
+program = "/bin/zsh"

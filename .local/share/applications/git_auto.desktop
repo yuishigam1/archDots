@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=git_autoCommit
+Comment=Run git auto commit and push for all repositories
+Exec=/home/yash/myApps/git_auto.sh
+Icon=/home/yash/myIcons/git.png
+Terminal=true
+Type=Application
+Categories=Utility;Development;

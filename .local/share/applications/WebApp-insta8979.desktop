@@ -1,0 +1,19 @@
+[Desktop Entry]
+Version=1.0
+Name=insta
+Comment=Web App
+Exec=sh -c 'XAPP_FORCE_GTKWINDOW_ICON="instagram" firefox --class WebApp-insta8979 --name WebApp-insta8979 --profile /home/yash/.local/share/ice/firefox/insta8979 --no-remote "https://www.instagram.com/"'
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=instagram
+Categories=GTK;WebApps;
+MimeType=text/html;text/xml;application/xhtml_xml;
+StartupWMClass=WebApp-insta8979
+StartupNotify=true
+X-WebApp-Browser=Firefox
+X-WebApp-URL=https://www.instagram.com/
+X-WebApp-CustomParameters=
+X-WebApp-Navbar=false
+X-WebApp-PrivateWindow=false
+X-WebApp-Isolated=true
