@@ -5,7 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
-PKGLIST="$DOTFILES_DIR/packages/pkglist.txt"
+PACMAN_LIST="$DOTFILES_DIR/packages/pacman.txt"
+AUR_LIST="$DOTFILES_DIR/packages/aur.txt"
 
 echo ">>> Backups -> $BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
@@ -66,29 +67,16 @@ if ! command -v yay &>/dev/null; then
   rm -rf /tmp/yay
 fi
 
-# --- read packages ---
-PACMAN_PKGS=()
-AUR_PKGS=()
-
-while read -r pkg; do
-  [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
-  if pacman -Si "$pkg" &>/dev/null; then
-    PACMAN_PKGS+=("$pkg")
-  else
-    AUR_PKGS+=("$pkg")
-  fi
-done <"$PKGLIST"
-
 # --- install pacman packages ---
-if ((${#PACMAN_PKGS[@]})); then
+if [ -f "$PACMAN_LIST" ] && [ -s "$PACMAN_LIST" ]; then
   echo ">>> Installing pacman packages..."
-  sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
+  xargs -a "$PACMAN_LIST" sudo pacman -S --needed --noconfirm
 fi
 
 # --- install AUR packages ---
-if ((${#AUR_PKGS[@]})); then
+if [ -f "$AUR_LIST" ] && [ -s "$AUR_LIST" ]; then
   echo ">>> Installing AUR packages..."
-  yay -S --needed --noconfirm "${AUR_PKGS[@]}"
+  xargs -a "$AUR_LIST" yay -S --needed --noconfirm
 fi
 
 # --- deploy dotfiles ---
@@ -134,6 +122,13 @@ if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
   done
 fi
 
+# --- deploy hyde theme manually ---
+THEME_DIR="$HOME/.config/hyde/themes/Ever Blushing"
+mkdir -p "$THEME_DIR"
+if [ -d "$DOTFILES_DIR/themes/Ever Blushing" ]; then
+  safe_sync "$DOTFILES_DIR/themes/Ever Blushing" "$THEME_DIR"
+fi
+
 # --- enable important system services ---
 services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service)
 
@@ -141,5 +136,9 @@ for svc in "${services[@]}"; do
   enable_service "$svc"
 done
 
+# --- setup sddm theme ---
+echo ">>> Setting up SDDM Astronaut theme..."
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
+
 echo "✅ Done. Backups at: $BACKUP_DIR"
-echo ">>> System services enabled and packages installed."
+echo ">>> System services enabled, packages installed, and theme deployed."
