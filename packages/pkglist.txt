@@ -126,7 +126,6 @@ wireplumber
 wlogout
 xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
-yacreader
 yay
 yay-debug
 zed
