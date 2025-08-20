@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- paths ---
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
@@ -16,7 +15,6 @@ need() { command -v "$1" >/dev/null 2>&1 || {
 }; }
 
 backup_path() {
-  # $1 is path relative to $HOME (e.g. '.zshrc' or '.config/kitty')
   local rel="$1"
   local src="$HOME/$rel"
   if [ -e "$src" ]; then
@@ -27,7 +25,6 @@ backup_path() {
 }
 
 safe_sync() {
-  # $1=source (in repo), $2=dest (in $HOME)
   local src="$1" dest="$2"
   if [ -d "$src" ]; then
     mkdir -p "$dest"
@@ -38,31 +35,54 @@ safe_sync() {
   fi
 }
 
-# --- ensure tools ---
+# --- ensure basic tools ---
 need rsync
 need git
 
-# --- packages ---
-echo ">>> Installing packages"
-if [ -f "$DOTFILES_DIR/packages/pkglist_native.txt" ]; then
-  sudo pacman -Syu --needed - <"$DOTFILES_DIR/packages/pkglist_native.txt"
+# --- update system first ---
+echo ">>> Updating system..."
+sudo pacman -Syu --noconfirm
+
+# --- bootstrap yay ---
+if ! command -v yay &>/dev/null; then
+  echo ">>> Installing yay..."
+  sudo pacman -S --needed --noconfirm base-devel git
+  rm -rf /tmp/yay
+  git clone https://aur.archlinux.org/yay.git /tmp/yay
+  (cd /tmp/yay && makepkg -si --noconfirm)
 fi
 
-if [ -f "$DOTFILES_DIR/packages/pkglist_aur.txt" ]; then
-  if ! command -v yay >/dev/null 2>&1; then
-    echo ">>> yay not found, bootstrapping..."
-    sudo pacman -S --needed --noconfirm base-devel git
-    rm -rf /tmp/yay
-    git clone https://aur.archlinux.org/yay.git /tmp/yay
-    (cd /tmp/yay && makepkg -si --noconfirm)
+# --- install packages ---
+PACMAN_PKGS=()
+AUR_PKGS=()
+
+while read -r pkg; do
+  # skip empty lines and comments
+  [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
+
+  # check if pacman knows it
+  if pacman -Si "$pkg" &>/dev/null; then
+    PACMAN_PKGS+=("$pkg")
+  else
+    AUR_PKGS+=("$pkg")
   fi
-  yay -Syu --needed --noconfirm - <"$DOTFILES_DIR/packages/pkglist_aur.txt"
+done <"$DOTFILES_DIR/packages/pkglist.txt"
+
+# install pacman packages
+if ((${#PACMAN_PKGS[@]})); then
+  echo ">>> Installing pacman packages..."
+  sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
 fi
 
-# --- deploy dotfiles (merge + backup only what we touch) ---
+# install AUR packages
+if ((${#AUR_PKGS[@]})); then
+  echo ">>> Installing AUR packages..."
+  yay -S --needed --noconfirm "${AUR_PKGS[@]}"
+fi
+
+# --- deploy dotfiles (merge + backup) ---
 echo ">>> Deploying dotfiles (merge mode)"
 
-# zshrc
 backup_path ".zshrc"
 safe_sync "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 
@@ -86,16 +106,13 @@ if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
   done
 fi
 
-# ~/myApps (your custom launch scripts)
+# ~/myApps
 if [ -d "$DOTFILES_DIR/myApps" ]; then
   backup_path "myApps"
   safe_sync "$DOTFILES_DIR/myApps" "$HOME/myApps"
-  # ensure scripts are executable
-  find "$HOME/myApps" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
-  # add to PATH if not already
+  find "$HOME/myApps" -type f -name "*.sh" -exec chmod +x {} \;
   if ! grep -q 'export PATH="$HOME/myApps:$PATH"' "$HOME/.zshrc" 2>/dev/null; then
     echo 'export PATH="$HOME/myApps:$PATH"' >>"$HOME/.zshrc"
-    echo '>>> Appended to .zshrc: export PATH="$HOME/myApps:$PATH"'
   fi
 fi
 
