@@ -8,7 +8,7 @@ echo $SCRIPT_DIR
 echo $DOTFILES_DIR
 # Directories to sync
 for dir_name in myApps myIcons; do
-  SRC="$DOTFILES_DIR/$dir_name"
+  SRC="$SCRIPT_DIR/../$dir_name"
   DEST="$HOME/$dir_name"
   echo $SRC
   echo $DEST
