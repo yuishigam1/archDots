@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-PKGLIST="$SCRIPT_DIR/../../packages/pkglist.txt"
+PKGLIST="$SCRIPT_DIR/../packages/pkglist.txt"
 
 PACMAN_PKGS=()
 AUR_PKGS=()
