@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Path to the dotfiles repo (assume this script is inside the repo)
-DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")"/../../ >/dev/null 2>&1 && pwd)"
-echo $DOTFILES_DIR
-# List of directories to sync directly to ~/
+# Absolute path to the repo root
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DOTFILES_DIR="$(realpath "$SCRIPT_DIR/../..")" # adjust depending on script location
+
+# Directories to sync
 for dir_name in myApps myIcons; do
   SRC="$DOTFILES_DIR/$dir_name"
   DEST="$HOME/$dir_name"
-  echo $SRC
-  echo $DEST
+
   if [ -d "$SRC" ]; then
-    # Create target directory
     mkdir -p "$DEST"
-    # Directly sync files from repo to home
     rsync -a --delete "$SRC/" "$DEST/"
-    # Make all .sh files executable
     find "$DEST" -type f -name "*.sh" -exec chmod +x {} \;
 
-    # Add to PATH if not already in .zshrc
+    # Add to PATH in .zshrc if not already
     grep -qxF "export PATH=\"\$HOME/$dir_name:\$PATH\"" "$HOME/.zshrc" ||
       echo "export PATH=\"\$HOME/$dir_name:\$PATH\"" >>"$HOME/.zshrc"
   fi
