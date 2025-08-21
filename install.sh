@@ -12,7 +12,8 @@ declare -A MODULES=(
   [4]="Zsh + Plugins + Nerd Fonts"
   [5]="Enable system services + SDDM theme"
   [6]="OCR4Linux"
-  [7]="All"
+  [7]="Neovim"
+  [8]="All"
 )
 
 echo "Select what you want to run:"
@@ -39,13 +40,15 @@ case "$choice" in
 4) run_script "zsh" ;;
 5) run_script "services" ;;
 6) run_script "OCR4Linux" ;;
-7)
+7) run_script "neovimsetup" ;;
+8)
   run_script "packages"
   run_script "dotfiles"
   run_script "apps"
   run_script "zsh"
   run_script "services"
   run_script "OCR4Linux"
+  run_script "neovimsetup"
   ;;
 *)
   echo "Invalid choice"
