@@ -33,10 +33,10 @@ for dir in "$DOTFILES_DIR/.config"/*; do
   safe_sync "$dir" "$HOME/.config/$name"
 done
 
-echo ">>> Deploying individual dotfiles"
+# Deploy individual dotfiles
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
-  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
+  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".dotfiles_backup" ]] && continue
   backup_path "$name"
   safe_sync "$file" "$HOME/$name"
 done
