@@ -5,7 +5,8 @@ enable_service() {
   local svc=$1
   if systemctl list-unit-files | grep -q "^${svc}"; then
     echo ">>> Enabling $svc"
-    sudo systemctl enable --now "$svc"
+    sudo systemctl enable "$svc"
+    sudo systemctl start "$svc"
   else
     echo ">>> Service $svc not found, skipping"
   fi
@@ -17,5 +18,5 @@ for svc in "${services[@]}"; do
 done
 
 # SDDM theme
-echo ">>> Setting up SDDM Astronaut theme..."
-echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
+# echo ">>> Setting up SDDM Astronaut theme..."
+# echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
