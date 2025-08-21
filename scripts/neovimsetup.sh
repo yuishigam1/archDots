@@ -33,6 +33,7 @@ mv ~/.cache/nvim{,.bak} 2>/dev/null || true
 # -----------------------------
 # Install LazyVim starter
 # -----------------------------
+rm -rf $LAZYVIM_PATH
 echo "Cloning LazyVim starter into $LAZYVIM_PATH..."
 git clone https://github.com/LazyVim/starter "$LAZYVIM_PATH"
 rm -rf "$LAZYVIM_PATH/.git"
