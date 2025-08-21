@@ -10,6 +10,7 @@ safe_sync() {
   rsync -a "$src" "$dest"
 }
 
+echo $SCRIPT_DIR+" "$DOTFILES_DIR
 echo ">>> Deploying icon theme"
 mkdir -p "$HOME/.icons"
 cp "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
