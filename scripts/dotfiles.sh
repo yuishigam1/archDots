@@ -36,7 +36,7 @@ safe_sync "$DOTFILES_DIR/.local/share/fonts" "$HOME/.local/share/fonts"
 
 echo ">>> Deploying .themes"
 mkdir -p "$HOME/.themes"
-safe_sync "$DOTFILES_DIR/.themes" "$HOME/.themes"
+safe_sync "$DOTFILES_DIR/.themes" "$HOME/"
 
 echo ">>> Updating font cache"
 fc-cache -fv
