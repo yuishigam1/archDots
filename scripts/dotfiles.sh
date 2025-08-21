@@ -34,6 +34,10 @@ echo ">>> Deploying Nerd Fonts"
 mkdir -p "$HOME/.local/share/fonts"
 safe_sync "$DOTFILES_DIR/.local/share/fonts" "$HOME/.local/share/fonts"
 
+echo ">>> Deploying .themes"
+mkdir -p "$HOME/.themes"
+safe_sync "$DOTFILES_DIR/.themes" "$HOME/.themes"
+
 echo ">>> Updating font cache"
 fc-cache -fv
 
