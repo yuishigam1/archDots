@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   viewBox="0 0 22 22"
+   width="22"
+   height="22"
+   id="svg1"
+   sodipodi:docname="system-reboot-update.svg"
+   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="31.833333"
+     inkscape:cx="12"
+     inkscape:cy="12"
+     inkscape:window-width="1920"
+     inkscape:window-height="998"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient1"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#006a80;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+      <stop
+         style="stop-color:#c8e0e7;stop-opacity:1;"
+         offset="1"
+         id="stop2" />
+    </linearGradient>
+    <style
+       id="current-color-scheme"
+       type="text/css">.ColorScheme-Text { color: #fcfcfc; } </style>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1"
+       id="linearGradient2"
+       x1="11.921466"
+       y1="3"
+       x2="11.900523"
+       y2="19"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(1,1)" />
+  </defs>
+  <g
+     id="g1">
+    <path
+       class="ColorScheme-Text"
+       d="M 11,3 C 6.97201,3.0047934 3.5757619,6.0035994 3.0722656,10 H 4.078125 C 4.5748796,6.558373 7.5227093,4.0031438 11,4 c 2.702236,0.00164 5.162212,1.5585076 6.320312,4 H 14 v 1 h 5 V 4 H 18 V 7.1679688 C 16.6018,4.6056289 13.918986,3.0082168 11,3 Z m 4,7 -4,4 h 2 v 5 h 4 v -5 h 2 z M 3,13 v 5 H 4 V 14.804688 C 5.3909801,17.377595 8.0751939,18.986326 11,19 V 18 C 8.3012935,17.994597 5.8460386,16.438311 4.6894531,14 H 8 v -1 z"
+       fill="currentColor"
+       id="path1"
+       style="fill:url(#linearGradient2)" />
+  </g>
+</svg>

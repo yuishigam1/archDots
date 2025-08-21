@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" width="64" height="64" version="1.1" viewBox="0 0 16.933 16.933" id="svg7" sodipodi:docname="conky.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)">
+  <sodipodi:namedview id="namedview7" pagecolor="#9c4444" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="4.3531261" inkscape:cx="36.295755" inkscape:cy="40.660435" inkscape:window-width="2560" inkscape:window-height="1376" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="svg7" showgrid="false"/>
+  <defs id="defs2">
+    <style id="current-color-scheme" type="text/css">.ColorScheme-Text {color:#d8dee9} .ColorScheme-Highlight {color:#3b4252}</style>
+    </defs>
+  <metadata id="metadata2">
+    <rdf:RDF>
+      <cc:Work rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <path id="path2-6" style="color:none;fill:currentColor;fill-opacity:1;stroke-width:0.313557" class="ColorScheme-Text" d="M 34.920888 3.9687397 C 34.776654 3.9687397 34.659631 4.0857602 34.659631 4.2299961 L 34.659631 5.2752949 L 34.659631 10.50097 L 34.659631 11.546269 C 34.659631 11.690504 34.776658 11.807525 34.920888 11.807525 L 35.96646 11.807525 L 38.318041 11.807525 C 38.462275 11.807525 38.579297 11.690505 38.579297 11.546269 L 38.579297 10.50097 C 38.579297 10.356734 38.462271 10.239713 38.318041 10.239713 L 36.227443 10.239713 L 36.227443 5.5365514 L 38.318041 5.5365514 C 38.462275 5.5365514 38.579297 5.4195308 38.579297 5.2752949 L 38.579297 4.2299961 C 38.579297 4.0857605 38.462271 3.9687397 38.318041 3.9687397 L 35.96646 3.9687397 L 34.920888 3.9687397 z " transform="matrix(1.8929053,0,0,1.8929053,-60.850678,-6.4649877)"/>
+</svg>
