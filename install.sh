@@ -208,5 +208,25 @@ done
 echo ">>> Refreshing font cache..."
 fc-cache -fv
 
+# --- install Zsh plugins ---
+echo ">>> Installing Zsh plugins..."
+
+ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
+declare -A ZSH_PLUGINS=(
+  ["zsh-256color"]="https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/256color"
+  ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
+  ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+)
+
+for plugin in "${!ZSH_PLUGINS[@]}"; do
+  PLUGIN_DIR="$ZSH_CUSTOM/plugins/$plugin"
+  if [ ! -d "$PLUGIN_DIR" ]; then
+    echo ">>> Installing $plugin..."
+    git clone --depth=1 "${ZSH_PLUGINS[$plugin]}" "$PLUGIN_DIR"
+  else
+    echo ">>> $plugin already installed"
+  fi
+done
+
 echo "✅ Done. Backups at: $BACKUP_DIR"
 echo ">>> System services enabled, packages installed, and dotfiles deployed."
