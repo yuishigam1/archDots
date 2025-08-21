@@ -39,7 +39,7 @@ mkdir -p "$HOME/.themes"
 safe_sync "$DOTFILES_DIR/.themes" "$HOME/"
 
 echo ">>> Deploying OCR4Linux"
-git clone https://github.com/moheladwy/OCR4Linux ~/
+git clone https://github.com/moheladwy/OCR4Linux ~/OCR4Linux
 
 echo ">>> Updating font cache"
 fc-cache -fv
