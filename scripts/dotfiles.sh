@@ -3,8 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR/../../"
-BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
+BACKUP_DIR="$HOME/.dotfiles_backup"
 
+# Clear previous backup
+rm -rf "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 
 backup_path() {
@@ -23,8 +25,7 @@ safe_sync() {
   rsync -a "$src" "$dest"
 }
 
-echo ">>> Deploying .config folders..."
-# Deploy .config
+echo ">>> Deploying .config"
 mkdir -p "$HOME/.config"
 for dir in "$DOTFILES_DIR/.config"/*; do
   name="$(basename "$dir")"
@@ -32,8 +33,7 @@ for dir in "$DOTFILES_DIR/.config"/*; do
   safe_sync "$dir" "$HOME/.config/$name"
 done
 
-echo ">>> Deploying individual dotfiles..."
-# Deploy individual dotfiles
+echo ">>> Deploying individual dotfiles"
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
@@ -41,26 +41,18 @@ for file in "$DOTFILES_DIR"/.*; do
   safe_sync "$file" "$HOME/$name"
 done
 
-echo ">>> Setting GTK & Hyprland environment variables..."
-# Ensure env variables for GTK/Qt apps and Hyprland
-PROFILE_FILE="$HOME/.zprofile"
-grep -qxF 'export XDG_CURRENT_DESKTOP=Hyprland' "$PROFILE_FILE" || echo 'export XDG_CURRENT_DESKTOP=Hyprland' >>"$PROFILE_FILE"
-grep -qxF 'export GTK_THEME=Ever-Blush:dark' "$PROFILE_FILE" || echo 'export GTK_THEME=Ever-Blush:dark' >>"$PROFILE_FILE"
-grep -qxF 'export QT_QPA_PLATFORMTHEME=gtk3' "$PROFILE_FILE" || echo 'export QT_QPA_PLATFORMTHEME=gtk3' >>"$PROFILE_FILE"
+# Install icon theme
+echo ">>> Deploying icon theme"
+mkdir -p "$HOME/.icons"
+safe_sync "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
 
-echo ">>> Ensuring polkit agent is running..."
-# Polkit agent autostart for Hyprland
-AUTOSTART_DIR="$HOME/.config/autostart"
-mkdir -p "$AUTOSTART_DIR"
-POLKIT_DESKTOP_FILE="$AUTOSTART_DIR/polkit-gnome-authentication-agent.desktop"
+# Install Nerd Fonts
+echo ">>> Deploying Nerd Fonts"
+mkdir -p "$HOME/.local/share/fonts"
+safe_sync "$DOTFILES_DIR/.local/share/fonts" "$HOME/.local/share/fonts"
 
-cat >"$POLKIT_DESKTOP_FILE" <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Polkit Authentication Agent
-Exec=/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
-NoDisplay=true
-X-GNOME-Autostart-enabled=true
-EOF
+# Update font cache
+fc-cache -fv
+echo ">>> Font cache updated"
 
-echo ">>> Dotfiles deployed and GTK/Polkit configured. Please restart your session for changes to take effect."
+echo ">>> Dotfiles deployment complete!"
