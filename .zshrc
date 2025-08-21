@@ -42,6 +42,21 @@ elif pacman -Qi paru &>/dev/null; then
    aurhelper="paru"
 fi
 
+function gitf {
+  git add .
+  git commit -m "fastCommit"
+  git push origin main
+}
+
+
+function aurpush {
+    git checkout master
+    makepkg --printsrcinfo > .SRCINFO
+    git add PKGBUILD .SRCINFO install.sh README.md
+    git commit -m "${1:-Update package}" 2>/dev/null || echo "No changes to commit"
+    git push aur master
+}
+
 function in {
     local -a inPkg=("$@")
     local -a arch=()
