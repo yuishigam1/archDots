@@ -80,6 +80,20 @@ if [[ -f "$PKGLIST" ]]; then
   done <"$PKGLIST"
 fi
 
+# --- remove conflicting packages automatically ---
+remove_conflicts() {
+  local pkg="$1"
+  local conflicts
+  conflicts=$(pacman -Si "$pkg" 2>/dev/null | grep "Conflicts With" | awk -F: '{print $2}' | xargs)
+  for c in $conflicts; do
+    if pacman -Qi "$c" &>/dev/null; then
+      echo ">>> Removing conflicting package $c"
+      sudo pacman -R --noconfirm "$c"
+    fi
+  done
+}
+for pkg in "${PACMAN_PKGS[@]}"; do remove_conflicts "$pkg"; done
+
 # --- install pacman packages ---
 if ((${#PACMAN_PKGS[@]})); then
   echo ">>> Installing pacman packages..."
@@ -101,7 +115,7 @@ for dir in "$DOTFILES_DIR/.config"/*; do
   safe_sync "$dir" "$HOME/.config/$name"
 done
 
-# --- deploy individual dotfiles (if any) in archDots root ---
+# --- deploy individual dotfiles (if any) in root ---
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
