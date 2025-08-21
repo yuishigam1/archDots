@@ -29,7 +29,7 @@ echo ">>> Deploying .config"
 mkdir -p "$HOME/.config"
 for dir in "$DOTFILES_DIR/.config"/*; do
   name="$(basename "$dir")"
-  backup_path ".config/$name"
+  # backup_path ".config/$name"
   safe_sync "$dir" "$HOME/.config/$name"
 done
 
@@ -37,7 +37,7 @@ done
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".dotfiles_backup" ]] && continue
-  backup_path "$name"
+  # backup_path "$name"
   safe_sync "$file" "$HOME/$name"
 done
 
