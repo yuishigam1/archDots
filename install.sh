@@ -80,34 +80,33 @@ if [[ -f "$PKGLIST" ]]; then
   done <"$PKGLIST"
 fi
 
-# --- remove conflicts before installing ---
-remove_conflicts() {
-  local pkg="$1"
-  local conflicts installed_conflicts
-  conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}')
-
-  # get list of installed packages once
-  installed_conflicts=$(pacman -Qq)
-
-  for c in $conflicts; do
-    c=$(echo "$c" | xargs) # trim whitespace
-    [[ -z "$c" ]] && continue
-    # Only remove if installed
-    if grep -qxF "$c" <<<"$installed_conflicts"; then
-      echo ">>> Removing conflicting package $c"
-      sudo pacman -R --noconfirm "$c"
-    else
-      echo ">>> Conflict package $c not installed, skipping"
-    fi
-  done
-}
-
-# --- install pacman packages safely ---
+# --- install pacman package safely with conflict handling ---
 install_pacman_pkg() {
   local pkg="$1"
-  remove_conflicts "$pkg"
   echo ">>> Installing $pkg..."
-  sudo pacman -S --needed --noconfirm "$pkg"
+
+  # Try normal install first
+  if ! sudo pacman -S --needed --noconfirm "$pkg"; then
+    echo ">>> Conflict detected while installing $pkg"
+
+    # Get conflicts from pacman
+    local conflicts
+    conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}' | tr ',' ' ')
+
+    for c in $conflicts; do
+      c=$(echo "$c" | xargs)
+      # Only remove if installed
+      if pacman -Qi "$c" &>/dev/null; then
+        echo ">>> Removing conflicting package $c (with dependencies if necessary)"
+        sudo pacman -Rdd --noconfirm "$c" || true
+      else
+        echo ">>> Conflict $c not installed, skipping"
+      fi
+    done
+
+    # Try installing again after removing conflicts
+    sudo pacman -S --needed --noconfirm "$pkg"
+  fi
 }
 
 # --- loop through all pacman packages ---
