@@ -88,9 +88,12 @@ remove_conflicts() {
   conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}')
   for c in $conflicts; do
     c=$(echo "$c" | xargs) # trim whitespace
+    # Only remove if installed
     if pacman -Qi "$c" &>/dev/null; then
       echo ">>> Removing conflicting package $c"
       sudo pacman -R --noconfirm "$c"
+    else
+      echo ">>> Conflict package $c not installed, skipping"
     fi
   done
 }
