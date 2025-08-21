@@ -92,21 +92,21 @@ if ((${#AUR_PKGS[@]})); then
   yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 fi
 
-# --- deploy home directory dotfiles ---
-echo ">>> Deploying home dotfiles"
-for file in "$DOTFILES_DIR"/dotfiles/*; do
-  name="$(basename "$file")"
-  backup_path "$name"
-  safe_sync "$file" "$HOME/$name"
-done
-
-# --- deploy ~/.config directories ---
+# --- deploy .config directories ---
 echo ">>> Deploying .config directories"
 mkdir -p "$HOME/.config"
 for dir in "$DOTFILES_DIR/.config"/*; do
   name="$(basename "$dir")"
   backup_path ".config/$name"
   safe_sync "$dir" "$HOME/.config/$name"
+done
+
+# --- deploy individual dotfiles (if any) in archDots root ---
+for file in "$DOTFILES_DIR"/.*; do
+  name="$(basename "$file")"
+  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
+  backup_path "$name"
+  safe_sync "$file" "$HOME/$name"
 done
 
 # --- deploy ~/.local/share/applications ---
