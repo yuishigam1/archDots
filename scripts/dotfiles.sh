@@ -20,6 +20,7 @@ done
 echo ">>> Deploying individual dotfiles"
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
+  echo "$file"
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".dotfiles_backup" ]] && continue
   safe_sync "$file" "$HOME/$name"
 done
