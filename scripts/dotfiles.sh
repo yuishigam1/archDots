@@ -10,6 +10,10 @@ safe_sync() {
   rsync -a "$src" "$dest"
 }
 
+echo ">>> Deploying icon theme"
+mkdir -p "$HOME/.icons"
+safe_sync "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
+
 echo ">>> Deploying .config"
 mkdir -p "$HOME/.config"
 for dir in "$DOTFILES_DIR/.config"/*; do
@@ -24,10 +28,6 @@ for file in "$DOTFILES_DIR"/.*; do
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".git" || "$name" == ".cache" || "$name" == ".local" ]] && continue
   safe_sync "$file" "$HOME/$name"
 done
-
-echo ">>> Deploying icon theme"
-mkdir -p "$HOME/.icons"
-safe_sync "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
 
 echo ">>> Deploying Nerd Fonts"
 mkdir -p "$HOME/.local/share/fonts"
