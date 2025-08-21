@@ -109,13 +109,23 @@ for file in "$DOTFILES_DIR"/.*; do
   safe_sync "$file" "$HOME/$name"
 done
 
-# --- deploy ~/.local/share folders ---
-if [ -d "$DOTFILES_DIR/.local/share" ]; then
-  mkdir -p "$HOME/.local/share"
-  for folder in "$DOTFILES_DIR/.local/share"/*; do
-    name="$(basename "$folder")"
-    backup_path ".local/share/$name"
-    safe_sync "$folder" "$HOME/.local/share/$name"
+# --- deploy ~/.local/share/applications ---
+if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
+  mkdir -p "$HOME/.local/share/applications"
+  for file in "$DOTFILES_DIR/.local/share/applications"/*; do
+    name="$(basename "$file")"
+    backup_path ".local/share/applications/$name"
+    safe_sync "$file" "$HOME/.local/share/applications/$name"
+  done
+fi
+
+# --- deploy ~/.local/share/bin ---
+if [ -d "$DOTFILES_DIR/.local/share/bin" ]; then
+  mkdir -p "$HOME/.local/share/bin"
+  for file in "$DOTFILES_DIR/.local/share/bin"/*; do
+    name="$(basename "$file")"
+    backup_path ".local/share/bin/$name"
+    safe_sync "$file" "$HOME/.local/share/bin/$name"
   done
 fi
 
@@ -151,7 +161,7 @@ done
 
 # --- setup SDDM theme ---
 echo ">>> Setting up SDDM Astronaut theme..."
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
+echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
 
 echo "✅ Done. Backups at: $BACKUP_DIR"
 echo ">>> System services enabled, packages installed, and dotfiles deployed."
