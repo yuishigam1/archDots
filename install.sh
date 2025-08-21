@@ -83,13 +83,17 @@ fi
 # --- remove conflicts before installing ---
 remove_conflicts() {
   local pkg="$1"
-  local conflicts
-  # get conflicts listed by pacman
+  local conflicts installed_conflicts
   conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}')
+
+  # get list of installed packages once
+  installed_conflicts=$(pacman -Qq)
+
   for c in $conflicts; do
     c=$(echo "$c" | xargs) # trim whitespace
+    [[ -z "$c" ]] && continue
     # Only remove if installed
-    if pacman -Qi "$c" &>/dev/null; then
+    if grep -qxF "$c" <<<"$installed_conflicts"; then
       echo ">>> Removing conflicting package $c"
       sudo pacman -R --noconfirm "$c"
     else
@@ -98,7 +102,7 @@ remove_conflicts() {
   done
 }
 
-# install pacman packages safely
+# --- install pacman packages safely ---
 install_pacman_pkg() {
   local pkg="$1"
   remove_conflicts "$pkg"
@@ -106,7 +110,7 @@ install_pacman_pkg() {
   sudo pacman -S --needed --noconfirm "$pkg"
 }
 
-# loop through all pacman packages
+# --- loop through all pacman packages ---
 for pkg in "${PACMAN_PKGS[@]}"; do
   install_pacman_pkg "$pkg"
 done
