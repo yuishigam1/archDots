@@ -1,236 +1,51 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- paths ---
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-DOTFILES_DIR="$SCRIPT_DIR"
-BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
-PKGLIST="$DOTFILES_DIR/packages/pkglist.txt"
+SCRIPTS_DIR="$SCRIPT_DIR/scripts/"
 
-echo ">>> Backups -> $BACKUP_DIR"
-mkdir -p "$BACKUP_DIR"
+# Menu options
+declare -A MODULES=(
+  [1]="Packages (pacman + AUR)"
+  [2]="Dotfiles & .config"
+  [3]="myApps & myIcons"
+  [4]="Zsh + Plugins + Nerd Fonts"
+  [5]="Enable system services + SDDM theme"
+  [6]="All"
+)
 
-# --- helpers ---
-need() { command -v "$1" >/dev/null 2>&1 || {
-  echo ">>> Installing $1..."
-  sudo pacman -S --needed --noconfirm "$1"
-}; }
+echo "Select what you want to run:"
+for i in "${!MODULES[@]}"; do
+  echo "  $i) ${MODULES[$i]}"
+done
 
-backup_path() {
-  local rel="$1"
-  local src="$HOME/$rel"
-  if [ -e "$src" ]; then
-    mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
-    echo ">>> Backing up $rel"
-    cp -a "$src" "$BACKUP_DIR/$rel"
-  fi
-}
+read -rp "Enter number (e.g. 1 or 6 for all): " choice
 
-safe_sync() {
-  local src="$1" dest="$2"
-  if [ -d "$src" ]; then
-    mkdir -p "$dest"
-    rsync -a "$src"/ "$dest"/
+run_script() {
+  local script="$SCRIPTS_DIR/$1.sh"
+  if [[ -f "$script" ]]; then
+    echo ">>> Running $1..."
+    bash "$script"
   else
-    mkdir -p "$(dirname "$dest")"
-    rsync -a "$src" "$dest"
+    echo ">>> Script $1.sh not found, skipping..."
   fi
 }
 
-enable_service() {
-  local svc=$1
-  if systemctl list-unit-files | grep -q "^${svc}"; then
-    echo ">>> Enabling $svc"
-    sudo systemctl enable --now "$svc"
-  else
-    echo ">>> Service $svc not found, skipping"
-  fi
-}
-
-# --- ensure basic tools ---
-need rsync
-need git
-
-# --- update system ---
-echo ">>> Updating system..."
-sudo pacman -Sy --noconfirm
-sudo pacman -Su --noconfirm
-
-# --- bootstrap yay ---
-if ! command -v yay &>/dev/null; then
-  echo ">>> Installing yay..."
-  sudo pacman -S --needed --noconfirm base-devel git
-  rm -rf /tmp/yay
-  git clone https://aur.archlinux.org/yay.git /tmp/yay
-  (cd /tmp/yay && makepkg -si --noconfirm)
-  rm -rf /tmp/yay
-fi
-
-# --- dynamic package separation ---
-PACMAN_PKGS=()
-AUR_PKGS=()
-if [[ -f "$PKGLIST" ]]; then
-  while read -r pkg; do
-    [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
-    if pacman -Si "$pkg" &>/dev/null; then
-      PACMAN_PKGS+=("$pkg")
-    else
-      AUR_PKGS+=("$pkg")
-    fi
-  done <"$PKGLIST"
-fi
-
-# --- install pacman package safely with conflict handling ---
-install_pacman_pkg() {
-  local pkg="$1"
-  echo ">>> Installing $pkg..."
-
-  # Try normal install first
-  if ! sudo pacman -S --needed --noconfirm "$pkg"; then
-    echo ">>> Conflict detected while installing $pkg"
-
-    # Get conflicts from pacman
-    local conflicts
-    conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}' | tr ',' ' ')
-
-    for c in $conflicts; do
-      c=$(echo "$c" | xargs)
-      # Only remove if installed
-      if pacman -Qi "$c" &>/dev/null; then
-        echo ">>> Removing conflicting package $c (with dependencies if necessary)"
-        sudo pacman -Rdd --noconfirm "$c" || true
-      else
-        echo ">>> Conflict $c not installed, skipping"
-      fi
-    done
-
-    # Try installing again after removing conflicts
-    sudo pacman -S --needed --noconfirm "$pkg"
-  fi
-}
-
-# --- loop through all pacman packages ---
-for pkg in "${PACMAN_PKGS[@]}"; do
-  install_pacman_pkg "$pkg"
-done
-
-# --- install AUR packages safely ---
-if ((${#AUR_PKGS[@]})); then
-  echo ">>> Installing AUR packages..."
-  yay -S --needed --noconfirm "${AUR_PKGS[@]}"
-fi
-
-# --- deploy .config directories ---
-echo ">>> Deploying .config directories"
-mkdir -p "$HOME/.config"
-for dir in "$DOTFILES_DIR/.config"/*; do
-  name="$(basename "$dir")"
-  backup_path ".config/$name"
-  safe_sync "$dir" "$HOME/.config/$name"
-done
-
-# --- deploy individual dotfiles ---
-for file in "$DOTFILES_DIR"/.*; do
-  name="$(basename "$file")"
-  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
-  backup_path "$name"
-  safe_sync "$file" "$HOME/$name"
-done
-
-# --- deploy ~/.local/share/applications ---
-if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
-  mkdir -p "$HOME/.local/share/applications"
-  for file in "$DOTFILES_DIR/.local/share/applications"/*; do
-    name="$(basename "$file")"
-    backup_path ".local/share/applications/$name"
-    safe_sync "$file" "$HOME/.local/share/applications/$name"
-  done
-fi
-
-# --- deploy ~/.local/share/bin ---
-if [ -d "$DOTFILES_DIR/.local/share/bin" ]; then
-  mkdir -p "$HOME/.local/share/bin"
-  for file in "$DOTFILES_DIR/.local/share/bin"/*; do
-    name="$(basename "$file")"
-    backup_path ".local/share/bin/$name"
-    safe_sync "$file" "$HOME/.local/share/bin/$name"
-  done
-fi
-
-# --- deploy ~/myApps and ~/myIcons ---
-for dir_name in myApps myIcons; do
-  DIR="$DOTFILES_DIR/$dir_name"
-  if [ -d "$DIR" ]; then
-    backup_path "$dir_name"
-    safe_sync "$DIR" "$HOME/$dir_name"
-    find "$HOME/$dir_name" -type f -name "*.sh" -exec chmod +x {} \;
-    grep -qxF "export PATH=\"\$HOME/$dir_name:\$PATH\"" "$HOME/.zshrc" ||
-      echo "export PATH=\"\$HOME/$dir_name:\$PATH\"" >>"$HOME/.zshrc"
-  fi
-done
-
-# --- deploy zsh plugins ---
-if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
-  mkdir -p "$HOME/.oh-my-zsh/custom/plugins"
-  for plugin in "$DOTFILES_DIR/.zsh_plugins"/*; do
-    safe_sync "$plugin" "$HOME/.oh-my-zsh/custom/plugins/$(basename $plugin)"
-  done
-fi
-
-# --- deploy hyde theme manually ---
-THEME_DIR="$HOME/.config/hyde/themes/Ever Blushing"
-mkdir -p "$THEME_DIR"
-if [ -d "$DOTFILES_DIR/themes/Ever Blushing" ]; then
-  safe_sync "$DOTFILES_DIR/themes/Ever Blushing" "$THEME_DIR"
-fi
-
-# --- enable system services ---
-services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service)
-for svc in "${services[@]}"; do
-  enable_service "$svc"
-done
-
-# --- setup SDDM theme ---
-echo ">>> Setting up SDDM Astronaut theme..."
-echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
-
-# --- install required Nerd Fonts for Waybar ---
-echo ">>> Installing required Nerd Fonts..."
-FONTS_AUR=("ttf-jetbrains-mono-nerd" "ttf-caskaydia-cove-nerd-font")
-
-for font in "${FONTS_AUR[@]}"; do
-  if ! fc-list | grep -i "$(echo $font | sed 's/ttf-//;s/-/ /g')" &>/dev/null; then
-    echo ">>> Installing $font from AUR..."
-    yay -S --needed --noconfirm "$font"
-  else
-    echo ">>> $font already installed"
-  fi
-done
-
-yay -S --needed ttf-jetbrains-mono-nerd ttf-caskaydia-cove-nerd
-
-# Refresh font cache
-echo ">>> Refreshing font cache..."
-fc-cache -fv
-
-# --- zsh plugins ---
-echo ">>> Installing zsh plugins..."
-mkdir -p "$ZSH_CUSTOM/plugins"
-
-# zsh-autosuggestions
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-  git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-fi
-
-# zsh-syntax-highlighting
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-  git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-fi
-
-# zsh-256color
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-256color" ]; then
-  git clone https://github.com/jeffreytse/zsh-256color "$ZSH_CUSTOM/plugins/zsh-256color"
-fi
-
-echo "✅ Done. Backups at: $BACKUP_DIR"
-echo ">>> System services enabled, packages installed, and dotfiles deployed."
+case "$choice" in
+1) run_script "packages" ;;
+2) run_script "dotfiles" ;;
+3) run_script "apps" ;;
+4) run_script "zsh" ;;
+5) run_script "services" ;;
+6)
+  run_script "packages"
+  run_script "dotfiles"
+  run_script "apps"
+  run_script "zsh"
+  run_script "services"
+  ;;
+*)
+  echo "Invalid choice"
+  exit 1
+  ;;
+esac
