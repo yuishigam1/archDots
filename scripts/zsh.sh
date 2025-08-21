@@ -4,9 +4,19 @@ set -euo pipefail
 # -----------------------------
 # Paths
 # -----------------------------
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-PLUGINS_DIR="$ZSH_CUSTOM/plugins"
-mkdir -p "$PLUGINS_DIR"
+# Detect ZSH_CUSTOM or fallback to system path
+if [[ -n "${ZSH_CUSTOM:-}" ]]; then
+  PLUGINS_DIR="${ZSH_CUSTOM}/plugins"
+else
+  # System-wide Oh My Zsh
+  PLUGINS_DIR="/usr/share/oh-my-zsh/custom/plugins"
+fi
+
+# Make sure the plugins directory exists
+if [[ ! -d "$PLUGINS_DIR" ]]; then
+  echo "Creating plugins directory: $PLUGINS_DIR"
+  sudo mkdir -p "$PLUGINS_DIR"
+fi
 
 # -----------------------------
 # Detect AUR helper
@@ -21,7 +31,7 @@ else
 fi
 
 # -----------------------------
-# Zsh plugins (correct GitHub URLs)
+# Zsh plugins (GitHub URLs)
 # -----------------------------
 declare -A ZSH_PLUGINS=(
   ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions"
@@ -33,10 +43,10 @@ for plugin in "${!ZSH_PLUGINS[@]}"; do
   DEST="$PLUGINS_DIR/$plugin"
   if [[ ! -d "$DEST" ]]; then
     echo ">>> Installing ZSH plugin: $plugin"
-    git clone "${ZSH_PLUGINS[$plugin]}" "$DEST"
+    sudo git clone "${ZSH_PLUGINS[$plugin]}" "$DEST"
   else
     echo ">>> Updating ZSH plugin: $plugin"
-    git -C "$DEST" pull --ff-only
+    sudo git -C "$DEST" pull --ff-only
   fi
 done
 
