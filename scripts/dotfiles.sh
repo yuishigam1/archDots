@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-DOTFILES_DIR="$SCRIPT_DIR/../../"
+DOTFILES_DIR="$SCRIPT_DIR/../"
 
 safe_sync() {
   local src="$1" dest="$2"
