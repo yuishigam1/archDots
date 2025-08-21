@@ -213,25 +213,24 @@ yay -S --needed ttf-jetbrains-mono-nerd ttf-caskaydia-cove-nerd
 echo ">>> Refreshing font cache..."
 fc-cache -fv
 
-#--- install Zsh plugins ---
-echo ">>> Installing Zsh plugins..."
-ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
-ZSH_PLUGINS=(
-  "zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git"
-  "zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git"
-)
+# --- zsh plugins ---
+echo ">>> Installing zsh plugins..."
+mkdir -p "$ZSH_CUSTOM/plugins"
 
-for plugin in "${ZSH_PLUGINS[@]}"; do
-  name=$(echo $plugin | awk '{print $1}')
-  repo=$(echo $plugin | awk '{print $2}')
-  PLUGIN_DIR="$ZSH_CUSTOM/plugins/$name"
-  if [ ! -d "$PLUGIN_DIR" ]; then
-    echo ">>> Installing $name..."
-    git clone --depth=1 "$repo" "$PLUGIN_DIR"
-  else
-    echo ">>> $name already installed"
-  fi
-done
+# zsh-autosuggestions
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
+  git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+fi
+
+# zsh-syntax-highlighting
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
+  git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+fi
+
+# zsh-256color
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-256color" ]; then
+  git clone https://github.com/jeffreytse/zsh-256color "$ZSH_CUSTOM/plugins/zsh-256color"
+fi
 
 echo "✅ Done. Backups at: $BACKUP_DIR"
 echo ">>> System services enabled, packages installed, and dotfiles deployed."
