@@ -80,23 +80,33 @@ if [[ -f "$PKGLIST" ]]; then
   done <"$PKGLIST"
 fi
 
-# --- pacman install with conflict resolution ---
-if ((${#PACMAN_PKGS[@]})); then
-  echo ">>> Installing pacman packages with automatic conflict removal..."
-  INSTALLED_PKGS=$(pacman -Qq)
-
-  for pkg in "${PACMAN_PKGS[@]}"; do
-    CONFLICTS=$(pacman -Si "$pkg" 2>/dev/null | grep "Conflicts With" | cut -d: -f2 | tr ',' ' ')
-    for c in $CONFLICTS; do
-      c=$(echo "$c" | xargs)
-      if grep -qxF "$c" <<<"$INSTALLED_PKGS"; then
-        echo ">>> Removing conflicting package $c before installing $pkg"
-        sudo pacman -R --noconfirm "$c" || true
-      fi
-    done
-    sudo pacman -S --needed --noconfirm "$pkg"
+# --- remove conflicts before installing ---
+remove_conflicts() {
+  local pkg="$1"
+  local conflicts
+  # get conflicts listed by pacman
+  conflicts=$(pacman -Si "$pkg" 2>/dev/null | awk -F: '/Conflicts With/ {print $2}')
+  for c in $conflicts; do
+    c=$(echo "$c" | xargs) # trim whitespace
+    if pacman -Qi "$c" &>/dev/null; then
+      echo ">>> Removing conflicting package $c"
+      sudo pacman -R --noconfirm "$c"
+    fi
   done
-fi
+}
+
+# install pacman packages safely
+install_pacman_pkg() {
+  local pkg="$1"
+  remove_conflicts "$pkg"
+  echo ">>> Installing $pkg..."
+  sudo pacman -S --needed --noconfirm "$pkg"
+}
+
+# loop through all pacman packages
+for pkg in "${PACMAN_PKGS[@]}"; do
+  install_pacman_pkg "$pkg"
+done
 
 # --- install AUR packages safely ---
 if ((${#AUR_PKGS[@]})); then
