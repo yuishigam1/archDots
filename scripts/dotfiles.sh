@@ -26,7 +26,7 @@ echo ">>> Deploying individual dotfiles"
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
   echo "$file"
-  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".git" || "$name" == ".cache" || "$name" == ".local" ]] && continue
+  [[ "$name" == "." || "$name" == ".." || "$name" == ".config" || "$name" == ".git" || "$name" == ".cache" || "$name" == ".local" || "$name" == ".icons" ]] && continue
   safe_sync "$file" "$HOME/$name"
 done
 
