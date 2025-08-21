@@ -13,7 +13,7 @@ safe_sync() {
 echo $SCRIPT_DIR+" "$DOTFILES_DIR
 echo ">>> Deploying icon theme"
 mkdir -p "$HOME/.icons"
-cp "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
+safe_sync "$DOTFILES_DIR/.icons/Papirus-Everblush" "$HOME/.icons/Papirus-Everblush"
 
 echo ">>> Deploying .config"
 mkdir -p "$HOME/.config"
