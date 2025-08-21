@@ -11,7 +11,7 @@ enable_service() {
   fi
 }
 
-services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service)
+services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service bluetooth.service)
 for svc in "${services[@]}"; do
   enable_service "$svc"
 done
