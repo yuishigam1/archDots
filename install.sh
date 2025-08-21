@@ -109,13 +109,13 @@ for file in "$DOTFILES_DIR"/.*; do
   safe_sync "$file" "$HOME/$name"
 done
 
-# --- deploy ~/.local/share/applications ---
-if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
-  mkdir -p "$HOME/.local/share/applications"
-  for file in "$DOTFILES_DIR/.local/share/applications"/*; do
-    name="$(basename "$file")"
-    backup_path ".local/share/applications/$name"
-    safe_sync "$file" "$HOME/.local/share/applications/$name"
+# --- deploy ~/.local/share folders ---
+if [ -d "$DOTFILES_DIR/.local/share" ]; then
+  mkdir -p "$HOME/.local/share"
+  for folder in "$DOTFILES_DIR/.local/share"/*; do
+    name="$(basename "$folder")"
+    backup_path ".local/share/$name"
+    safe_sync "$folder" "$HOME/.local/share/$name"
   done
 fi
 
