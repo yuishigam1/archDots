@@ -80,30 +80,25 @@ if [[ -f "$PKGLIST" ]]; then
   done <"$PKGLIST"
 fi
 
-remove_conflicts() {
-  local pkg="$1"
-  # Get conflicts from pacman -Si, remove commas, split by space
-  local conflicts
-  conflicts=$(pacman -Si "$pkg" 2>/dev/null | grep "Conflicts With" | cut -d: -f2 | tr ',' ' ')
-
-  for c in $conflicts; do
-    c=$(echo "$c" | xargs) # trim whitespace
-    if pacman -Qi "$c" &>/dev/null; then
-      echo ">>> Removing conflicting package $c"
-      sudo pacman -R --noconfirm "$c" || true
-    else
-      echo ">>> Conflict $c not installed, skipping"
-    fi
-  done
-}
-
-# --- install pacman packages ---
+# --- pacman install with conflict resolution ---
 if ((${#PACMAN_PKGS[@]})); then
-  echo ">>> Installing pacman packages..."
-  sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
+  echo ">>> Installing pacman packages with automatic conflict removal..."
+  INSTALLED_PKGS=$(pacman -Qq)
+
+  for pkg in "${PACMAN_PKGS[@]}"; do
+    CONFLICTS=$(pacman -Si "$pkg" 2>/dev/null | grep "Conflicts With" | cut -d: -f2 | tr ',' ' ')
+    for c in $CONFLICTS; do
+      c=$(echo "$c" | xargs)
+      if grep -qxF "$c" <<<"$INSTALLED_PKGS"; then
+        echo ">>> Removing conflicting package $c before installing $pkg"
+        sudo pacman -R --noconfirm "$c" || true
+      fi
+    done
+    sudo pacman -S --needed --noconfirm "$pkg"
+  done
 fi
 
-# --- install AUR packages ---
+# --- install AUR packages safely ---
 if ((${#AUR_PKGS[@]})); then
   echo ">>> Installing AUR packages..."
   yay -S --needed --noconfirm "${AUR_PKGS[@]}"
@@ -118,7 +113,7 @@ for dir in "$DOTFILES_DIR/.config"/*; do
   safe_sync "$dir" "$HOME/.config/$name"
 done
 
-# --- deploy individual dotfiles (if any) in root ---
+# --- deploy individual dotfiles ---
 for file in "$DOTFILES_DIR"/.*; do
   name="$(basename "$file")"
   [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
