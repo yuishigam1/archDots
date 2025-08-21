@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Path to the dotfiles repo (assume this script is inside the repo)
 DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")"/../../ >/dev/null 2>&1 && pwd)"
-
+echo $DOTFILES_DIR
 # List of directories to sync directly to ~/
 for dir_name in myApps myIcons; do
   SRC="$DOTFILES_DIR/$dir_name"
