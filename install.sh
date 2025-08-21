@@ -157,14 +157,17 @@ if [ -d "$DOTFILES_DIR/.local/share/bin" ]; then
   done
 fi
 
-# --- deploy ~/myApps ---
-if [ -d "$DOTFILES_DIR/myApps" ]; then
-  backup_path "myApps"
-  safe_sync "$DOTFILES_DIR/myApps" "$HOME/myApps"
-  find "$HOME/myApps" -type f -name "*.sh" -exec chmod +x {} \;
-  grep -qxF 'export PATH="$HOME/myApps:$PATH"' "$HOME/.zshrc" ||
-    echo 'export PATH="$HOME/myApps:$PATH"' >>"$HOME/.zshrc"
-fi
+# --- deploy ~/myApps and ~/myIcons ---
+for dir_name in myApps myIcons; do
+  DIR="$DOTFILES_DIR/$dir_name"
+  if [ -d "$DIR" ]; then
+    backup_path "$dir_name"
+    safe_sync "$DIR" "$HOME/$dir_name"
+    find "$HOME/$dir_name" -type f -name "*.sh" -exec chmod +x {} \;
+    grep -qxF "export PATH=\"\$HOME/$dir_name:\$PATH\"" "$HOME/.zshrc" ||
+      echo "export PATH=\"\$HOME/$dir_name:\$PATH\"" >>"$HOME/.zshrc"
+  fi
+done
 
 # --- deploy zsh plugins ---
 if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
@@ -204,27 +207,29 @@ for font in "${FONTS_AUR[@]}"; do
   fi
 done
 
+yay -S --needed ttf-jetbrains-mono-nerd ttf-caskaydia-cove-nerd
+
 # Refresh font cache
 echo ">>> Refreshing font cache..."
 fc-cache -fv
 
-# --- install Zsh plugins ---
+--- install Zsh plugins ---
 echo ">>> Installing Zsh plugins..."
-
 ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
-declare -A ZSH_PLUGINS=(
-  ["zsh-256color"]="https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/256color"
-  ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
-  ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+ZSH_PLUGINS=(
+  "zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git"
+  "zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git"
 )
 
-for plugin in "${!ZSH_PLUGINS[@]}"; do
-  PLUGIN_DIR="$ZSH_CUSTOM/plugins/$plugin"
+for plugin in "${ZSH_PLUGINS[@]}"; do
+  name=$(echo $plugin | awk '{print $1}')
+  repo=$(echo $plugin | awk '{print $2}')
+  PLUGIN_DIR="$ZSH_CUSTOM/plugins/$name"
   if [ ! -d "$PLUGIN_DIR" ]; then
-    echo ">>> Installing $plugin..."
-    git clone --depth=1 "${ZSH_PLUGINS[$plugin]}" "$PLUGIN_DIR"
+    echo ">>> Installing $name..."
+    git clone --depth=1 "$repo" "$PLUGIN_DIR"
   else
-    echo ">>> $plugin already installed"
+    echo ">>> $name already installed"
   fi
 done
 
