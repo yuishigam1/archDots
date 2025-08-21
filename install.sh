@@ -21,7 +21,7 @@ backup_path() {
   local src="$HOME/$rel"
   if [ -e "$src" ]; then
     mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
-    echo ">>> Backup $rel"
+    echo ">>> Backing up $rel"
     cp -a "$src" "$BACKUP_DIR/$rel"
   fi
 }
@@ -51,12 +51,12 @@ enable_service() {
 need rsync
 need git
 
-# --- update system first ---
+# --- update system ---
 echo ">>> Updating system..."
 sudo pacman -Sy --noconfirm
 sudo pacman -Su --noconfirm
 
-# --- bootstrap yay if missing ---
+# --- bootstrap yay ---
 if ! command -v yay &>/dev/null; then
   echo ">>> Installing yay..."
   sudo pacman -S --needed --noconfirm base-devel git
@@ -92,24 +92,26 @@ if ((${#AUR_PKGS[@]})); then
   yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 fi
 
-# --- deploy dotfiles ---
-echo ">>> Deploying dotfiles (merge mode)"
-backup_path ".zshrc"
-safe_sync "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
+# --- deploy home directory dotfiles ---
+echo ">>> Deploying home dotfiles"
+for file in "$DOTFILES_DIR"/dotfiles/*; do
+  name="$(basename "$file")"
+  backup_path "$name"
+  safe_sync "$file" "$HOME/$name"
+done
 
-# ~/.config/*
+# --- deploy ~/.config directories ---
+echo ">>> Deploying .config directories"
 mkdir -p "$HOME/.config"
-if [ -d "$DOTFILES_DIR/.config" ]; then
-  for item in "$DOTFILES_DIR/.config"/*; do
-    name="$(basename "$item")"
-    backup_path ".config/$name"
-    safe_sync "$item" "$HOME/.config/$name"
-  done
-fi
+for dir in "$DOTFILES_DIR/.config"/*; do
+  name="$(basename "$dir")"
+  backup_path ".config/$name"
+  safe_sync "$dir" "$HOME/.config/$name"
+done
 
-# ~/.local/share/applications/*
-mkdir -p "$HOME/.local/share/applications"
+# --- deploy ~/.local/share/applications ---
 if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
+  mkdir -p "$HOME/.local/share/applications"
   for file in "$DOTFILES_DIR/.local/share/applications"/*; do
     name="$(basename "$file")"
     backup_path ".local/share/applications/$name"
@@ -117,17 +119,16 @@ if [ -d "$DOTFILES_DIR/.local/share/applications" ]; then
   done
 fi
 
-# ~/myApps
+# --- deploy ~/myApps ---
 if [ -d "$DOTFILES_DIR/myApps" ]; then
   backup_path "myApps"
   safe_sync "$DOTFILES_DIR/myApps" "$HOME/myApps"
   find "$HOME/myApps" -type f -name "*.sh" -exec chmod +x {} \;
-  if ! grep -q 'export PATH="$HOME/myApps:$PATH"' "$HOME/.zshrc" 2>/dev/null; then
+  grep -qxF 'export PATH="$HOME/myApps:$PATH"' "$HOME/.zshrc" ||
     echo 'export PATH="$HOME/myApps:$PATH"' >>"$HOME/.zshrc"
-  fi
 fi
 
-# zsh plugins (after AUR)
+# --- deploy zsh plugins ---
 if [ -d "$DOTFILES_DIR/.zsh_plugins" ]; then
   mkdir -p "$HOME/.oh-my-zsh/custom/plugins"
   for plugin in "$DOTFILES_DIR/.zsh_plugins"/*; do
@@ -142,16 +143,15 @@ if [ -d "$DOTFILES_DIR/themes/Ever Blushing" ]; then
   safe_sync "$DOTFILES_DIR/themes/Ever Blushing" "$THEME_DIR"
 fi
 
-# --- enable important system services ---
+# --- enable system services ---
 services=(sddm.service hyprland.service pipewire.service wireplumber.service swww.service qemu-guest-agent.service upower.service NetworkManager.service)
-
 for svc in "${services[@]}"; do
   enable_service "$svc"
 done
 
-# --- setup sddm theme ---
+# --- setup SDDM theme ---
 echo ">>> Setting up SDDM Astronaut theme..."
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
 
 echo "✅ Done. Backups at: $BACKUP_DIR"
-echo ">>> System services enabled, packages installed, and theme deployed."
+echo ">>> System services enabled, packages installed, and dotfiles deployed."
