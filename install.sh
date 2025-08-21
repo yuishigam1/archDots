@@ -5,8 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
-PACMAN_LIST="$DOTFILES_DIR/packages/pacman.txt"
-AUR_LIST="$DOTFILES_DIR/packages/aur.txt"
+PKGLIST="$DOTFILES_DIR/packages/pkglist.txt"
 
 echo ">>> Backups -> $BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
@@ -67,16 +66,30 @@ if ! command -v yay &>/dev/null; then
   rm -rf /tmp/yay
 fi
 
+# --- dynamic package separation ---
+PACMAN_PKGS=()
+AUR_PKGS=()
+if [[ -f "$PKGLIST" ]]; then
+  while read -r pkg; do
+    [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
+    if pacman -Si "$pkg" &>/dev/null; then
+      PACMAN_PKGS+=("$pkg")
+    else
+      AUR_PKGS+=("$pkg")
+    fi
+  done <"$PKGLIST"
+fi
+
 # --- install pacman packages ---
-if [ -f "$PACMAN_LIST" ] && [ -s "$PACMAN_LIST" ]; then
+if ((${#PACMAN_PKGS[@]})); then
   echo ">>> Installing pacman packages..."
-  xargs -a "$PACMAN_LIST" sudo pacman -S --needed --noconfirm
+  sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
 fi
 
 # --- install AUR packages ---
-if [ -f "$AUR_LIST" ] && [ -s "$AUR_LIST" ]; then
+if ((${#AUR_PKGS[@]})); then
   echo ">>> Installing AUR packages..."
-  xargs -a "$AUR_LIST" yay -S --needed --noconfirm
+  yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 fi
 
 # --- deploy dotfiles ---
