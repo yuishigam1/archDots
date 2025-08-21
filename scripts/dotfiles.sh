@@ -18,8 +18,10 @@ safe_sync "$DOTFILES_DIR/.icons" "$HOME"
 echo ">>> Deploying .config"
 mkdir -p "$HOME/.config"
 for dir in "$DOTFILES_DIR/.config"/*; do
+  echo $dir
+  # rm -rf $HOME/.config/$dir
   name="$(basename "$dir")"
-  safe_sync "$dir" "$HOME/.config/$name"
+  safe_sync "$dir" "$HOME/.config/"
 done
 
 echo ">>> Deploying individual dotfiles"
