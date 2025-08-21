@@ -191,5 +191,22 @@ done
 echo ">>> Setting up SDDM Astronaut theme..."
 echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
 
+# --- install required Nerd Fonts for Waybar ---
+echo ">>> Installing required Nerd Fonts..."
+FONTS_AUR=("ttf-jetbrains-mono-nerd" "ttf-caskaydia-cove-nerd-font")
+
+for font in "${FONTS_AUR[@]}"; do
+  if ! fc-list | grep -i "$(echo $font | sed 's/ttf-//;s/-/ /g')" &>/dev/null; then
+    echo ">>> Installing $font from AUR..."
+    yay -S --needed --noconfirm "$font"
+  else
+    echo ">>> $font already installed"
+  fi
+done
+
+# Refresh font cache
+echo ">>> Refreshing font cache..."
+fc-cache -fv
+
 echo "✅ Done. Backups at: $BACKUP_DIR"
 echo ">>> System services enabled, packages installed, and dotfiles deployed."
