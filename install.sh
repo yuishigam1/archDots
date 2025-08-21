@@ -86,7 +86,7 @@ remove_conflicts() {
   local conflicts
   conflicts=$(pacman -Si "$pkg" 2>/dev/null | grep "Conflicts With" | awk -F: '{print $2}' | xargs)
   for c in $conflicts; do
-    if pacman -Qi "$c" &>/dev/null; then
+    if pacman -Qi "$c" &>/dev/null; then # only try to remove if installed
       echo ">>> Removing conflicting package $c"
       sudo pacman -R --noconfirm "$c"
     fi
