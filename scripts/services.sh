@@ -18,7 +18,7 @@ for svc in "${services[@]}"; do
 done
 
 read -rp "Do you want to setup sddm theme ? [yes/no] : " choice
-if (choice == "yes"); then
+if ($choice == "yes"); then
   SDDM theme
   echo ">>> Setting up SDDM Astronaut theme..."
   echo -e "1\n5" | sh -c "$(curl -fsSL https://raw.githubusercontent.com/keyitdev/sddm-astronaut-theme/master/setup.sh)"
