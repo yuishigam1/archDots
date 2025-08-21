@@ -213,7 +213,7 @@ yay -S --needed ttf-jetbrains-mono-nerd ttf-caskaydia-cove-nerd
 echo ">>> Refreshing font cache..."
 fc-cache -fv
 
---- install Zsh plugins ---
+#--- install Zsh plugins ---
 echo ">>> Installing Zsh plugins..."
 ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 ZSH_PLUGINS=(
