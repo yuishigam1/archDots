@@ -5,9 +5,8 @@ set -euo pipefail
 
 # ---------------- Safety ----------------
 if [[ $EUID -ne 0 ]]; then
-  echo "This script needs root privileges. Asking for sudo..."
   SCRIPT_PATH="$(realpath "$0")"
-  exec sudo "$SCRIPT_PATH" "$@"
+  exec sudo bash "$SCRIPT_PATH" "$@"
 fi
 [[ -f /etc/arch-release ]] || {
   echo "This is for Arch Linux."
