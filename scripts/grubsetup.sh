@@ -54,7 +54,7 @@ grub-mkconfig -o "$ESP/grub/grub.cfg"
 
 # ---------------- Sign all EFI + kernels ----------------
 echo "Signing EFI binaries + kernel/initramfs..."
-sbctl sign-all --esp "$ESP"
+sbctl sign-all
 
 # ---------------- Pacman hook for auto-sign ----------------
 HOOK_DIR="/etc/pacman.d/hooks"
