@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -------------------------------------------------
-# Arch Linux one-shot Secure Boot + GRUB + Theme
-# -------------------------------------------------
+# Arch Linux one-shot Secure Boot setup (shim + GRUB + sbctl).
+# Robust: safe to re-run, detects if already enabled.
 
-# ---- Root check ----
+# ---------------- Safety ----------------
 if [[ $EUID -ne 0 ]]; then
   SCRIPT_PATH="$(realpath "$0")"
   exec sudo bash "$SCRIPT_PATH" "$@"
@@ -15,72 +14,71 @@ fi
   exit 1
 }
 
-# ---- Packages ----
-pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbctl git
+# ---------------- Packages ----------------
+pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbctl shim-signed git
 
-# ---- Detect ESP ----
-detect_esp() {
-  if findmnt -no FSTYPE /boot/efi 2>/dev/null | grep -qi vfat; then
-    echo /boot/efi
-    return
-  fi
-  if findmnt -no FSTYPE /boot 2>/dev/null | grep -qi vfat; then
-    echo /boot
-    return
-  fi
-  echo "ERROR: ESP not mounted. Mount it at /boot or /boot/efi and rerun." >&2
-  exit 1
-}
-ESP="$(detect_esp)"
-echo "ESP: $ESP"
-
-# ---- GRUB config ----
-mkdir -p /etc/default
-if [[ -f /etc/default/grub ]]; then
-  sed -i 's/^#\?GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=false/' /etc/default/grub || true
+# ---------------- Check if Secure Boot already configured ----------------
+if sbctl status | grep -q "Secure Boot enabled: true"; then
+  echo "=============================================================="
+  echo "✅ Secure Boot already enabled and configured on this system."
+  echo "Nothing to do for signing."
+  echo "=============================================================="
 else
-  cat >/etc/default/grub <<'EOF'
-GRUB_DEFAULT=0
-GRUB_TIMEOUT=5
-GRUB_TIMEOUT_STYLE=menu
-GRUB_DISTRIBUTOR="Arch"
-GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 nowatchdog"
-GRUB_CMDLINE_LINUX=""
-GRUB_DISABLE_OS_PROBER=false
-EOF
-fi
+  echo "=============================================================="
+  echo "⚙️  Configuring Secure Boot with shim + sbctl..."
+  echo "=============================================================="
 
-# ---- Install GRUB if missing ----
-if [[ ! -f "$ESP/EFI/GRUB/grubx64.efi" ]]; then
-  echo "Installing GRUB to EFI..."
+  # Ensure ESP is mounted
+  ESP="$(bootctl --print-esp-path || true)"
+  [[ -z "$ESP" ]] && ESP="/boot/efi"
+  [[ -d "$ESP" ]] || {
+    echo "ERROR: ESP not mounted at /boot/efi"
+    exit 1
+  }
+  echo "ESP: $ESP"
+
+  # Initialize keys if missing
+  if [[ ! -d /etc/secureboot/keys ]]; then
+    echo "Generating Secure Boot keys with sbctl..."
+    sbctl create-keys
+  fi
+
+  # Install GRUB to EFI with shim
   grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB
+
+  # Copy shim + MokManager
+  SHIM_DIR="/usr/share/shim-signed"
+  mkdir -p "$ESP/EFI/GRUB"
+  cp -f "$SHIM_DIR/shimx64.efi" "$ESP/EFI/GRUB/shimx64.efi"
+  cp -f "$SHIM_DIR/MokManager.efi" "$ESP/EFI/GRUB/MokManager.efi"
+
+  # Make sure fallback boot path exists
+  mkdir -p "$ESP/EFI/Boot"
+  cp -f "$ESP/EFI/GRUB/shimx64.efi" "$ESP/EFI/Boot/bootx64.efi"
+
+  # Sign all EFI + kernel files
+  echo "Signing EFI + kernel binaries..."
+  sbctl sign -s "$ESP/EFI/GRUB/grubx64.efi" || true
+  sbctl sign -s "$ESP/EFI/Boot/bootx64.efi" || true
+  for f in /boot/vmlinuz-*; do
+    [[ -f "$f" ]] && sbctl sign -s "$f"
+  done
+
+  # Generate GRUB config (detect Windows too)
+  sed -i 's/^#\?GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=false/' /etc/default/grub || true
+  grub-mkconfig -o /boot/grub/grub.cfg
+
+  echo "=============================================================="
+  echo "🎉 Secure Boot setup complete."
+  echo "Reboot with Secure Boot enabled in firmware."
+  echo "=============================================================="
 fi
-grub-mkconfig -o /boot/grub/grub.cfg
 
-# ---- Secure Boot keys ----
-if ! sbctl status | grep -q "Setup Mode"; then
-  echo "sbctl already initialized, skipping key generation."
-else
-  echo "Initializing sbctl Secure Boot keys..."
-  sbctl create-keys
-  sbctl enroll-keys -m # requires BIOS Secure Boot enabled but not in Setup Mode
-fi
-
-# ---- Signing ----
-echo "Signing boot binaries..."
-sbctl sign -s /boot/vmlinuz-linux || true
-sbctl sign -s "$ESP/EFI/GRUB/grubx64.efi" || true
-shopt -s nullglob
-for img in /boot/initramfs-*.img; do sbctl sign -s "$img" || true; done
-shopt -u nullglob
-
-# ---- Verify ----
-echo "Verification status:"
-sbctl verify || true
-
-# ---- Theme Option ----
+# ---------------- Theme Option ----------------
+echo
 read -rp "Do you want to install the Minegrub World Selector GRUB theme? (y/N): " ans
 if [[ "$ans" =~ ^[Yy]$ ]]; then
+  echo "Installing Minegrub GRUB theme..."
   THEME_DIR="/boot/grub/themes/minegrub"
   rm -rf "$THEME_DIR"
   git clone --depth=1 https://github.com/Lxtharia/minegrub-world-sel-theme "$THEME_DIR"
@@ -90,13 +88,7 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     echo "GRUB_THEME=\"$THEME_DIR/theme.txt\"" >>/etc/default/grub
   fi
   grub-mkconfig -o /boot/grub/grub.cfg
-  echo "Minegrub theme installed successfully!"
+  echo "✅ Minegrub theme installed successfully!"
 else
   echo "Skipped GRUB theme installation."
 fi
-
-echo "=============================================================="
-echo "Secure Boot setup complete."
-echo "If Secure Boot is enabled in BIOS, you should boot normally now."
-echo "GRUB + kernels are signed, pacman hooks are managed by sbctl."
-echo "=============================================================="
