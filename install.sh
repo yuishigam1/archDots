@@ -28,7 +28,11 @@ run_script() {
   local script="$SCRIPTS_DIR/$1.sh"
   if [[ -f "$script" ]]; then
     echo ">>> Running $1..."
-    bash "$script"
+    if [[ "$1" == "grubsetup" ]]; then
+      sudo bash "$script"
+    else
+      bash "$script"
+    fi
   else
     echo ">>> Script $1.sh not found, skipping..."
   fi
