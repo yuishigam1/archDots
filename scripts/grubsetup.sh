@@ -1,94 +1,82 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Arch Linux one-shot Secure Boot setup (shim + GRUB + sbctl).
-# Robust: safe to re-run, detects if already enabled.
+echo "=============================================================="
+echo "⚙️  Configuring Secure Boot with shim + sbctl..."
+echo "=============================================================="
 
-# ---------------- Safety ----------------
+# Ensure we are root
 if [[ $EUID -ne 0 ]]; then
-  SCRIPT_PATH="$(realpath "$0")"
-  exec sudo bash "$SCRIPT_PATH" "$@"
-fi
-[[ -f /etc/arch-release ]] || {
-  echo "This is for Arch Linux only."
+  echo "This script needs root privileges. Run with sudo."
   exit 1
-}
-
-# ---------------- Packages ----------------
-pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbctl shim-signed git
-
-# ---------------- Check if Secure Boot already configured ----------------
-if sbctl status | grep -q "Secure Boot enabled: true"; then
-  echo "=============================================================="
-  echo "✅ Secure Boot already enabled and configured on this system."
-  echo "Nothing to do for signing."
-  echo "=============================================================="
-else
-  echo "=============================================================="
-  echo "⚙️  Configuring Secure Boot with shim + sbctl..."
-  echo "=============================================================="
-
-  # Ensure ESP is mounted
-  ESP="$(bootctl --print-esp-path || true)"
-  [[ -z "$ESP" ]] && ESP="/boot/efi"
-  [[ -d "$ESP" ]] || {
-    echo "ERROR: ESP not mounted at /boot/efi"
-    exit 1
-  }
-  echo "ESP: $ESP"
-
-  # Initialize keys if missing
-  if [[ ! -d /etc/secureboot/keys ]]; then
-    echo "Generating Secure Boot keys with sbctl..."
-    sbctl create-keys
-  fi
-
-  # Install GRUB to EFI with shim
-  grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB
-
-  # Copy shim + MokManager
-  SHIM_DIR="/usr/share/shim-signed"
-  mkdir -p "$ESP/EFI/GRUB"
-  cp -f "$SHIM_DIR/shimx64.efi" "$ESP/EFI/GRUB/shimx64.efi"
-  cp -f "$SHIM_DIR/MokManager.efi" "$ESP/EFI/GRUB/MokManager.efi"
-
-  # Make sure fallback boot path exists
-  mkdir -p "$ESP/EFI/Boot"
-  cp -f "$ESP/EFI/GRUB/shimx64.efi" "$ESP/EFI/Boot/bootx64.efi"
-
-  # Sign all EFI + kernel files
-  echo "Signing EFI + kernel binaries..."
-  sbctl sign -s "$ESP/EFI/GRUB/grubx64.efi" || true
-  sbctl sign -s "$ESP/EFI/Boot/bootx64.efi" || true
-  for f in /boot/vmlinuz-*; do
-    [[ -f "$f" ]] && sbctl sign -s "$f"
-  done
-
-  # Generate GRUB config (detect Windows too)
-  sed -i 's/^#\?GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=false/' /etc/default/grub || true
-  grub-mkconfig -o /boot/grub/grub.cfg
-
-  echo "=============================================================="
-  echo "🎉 Secure Boot setup complete."
-  echo "Reboot with Secure Boot enabled in firmware."
-  echo "=============================================================="
 fi
 
-# ---------------- Theme Option ----------------
-echo
-read -rp "Do you want to install the Minegrub World Selector GRUB theme? (y/N): " ans
-if [[ "$ans" =~ ^[Yy]$ ]]; then
-  echo "Installing Minegrub GRUB theme..."
-  THEME_DIR="/boot/grub/themes/minegrub"
-  rm -rf "$THEME_DIR"
+# Variables
+ESP="/boot"
+SHIM_DIR="/usr/share/shim-signed"
+THEME_DIR="/boot/grub/themes/minegrub"
+
+# Install required packages
+pacman -Syu --needed --noconfirm grub efibootmgr os-prober sbctl shim-signed git
+
+# Check if keys already exist
+if sbctl status | grep -q "Installed:.*✔"; then
+  echo "✓ Secure Boot already set up and keys enrolled."
+else
+  echo "🔑 Generating Secure Boot keys..."
+  sbctl create-keys
+fi
+
+# Install GRUB
+echo "📦 Installing GRUB to EFI..."
+grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB --modules="tpm" --recheck
+
+# Handle shim + MokManager (Arch style)
+mkdir -p "$ESP/EFI/GRUB"
+cp -f "$SHIM_DIR/shimx64.efi" "$ESP/EFI/GRUB/shimx64.efi"
+cp -f "$SHIM_DIR/mmx64.efi" "$ESP/EFI/GRUB/MokManager.efi"
+
+# Detect other OS (like Windows)
+echo "🔎 Running os-prober..."
+os-prober || true
+grub-mkconfig -o /boot/grub/grub.cfg
+
+# Sign all EFI binaries
+echo "🔏 Signing EFI binaries..."
+sbctl sign -s /boot/vmlinuz-linux || true
+sbctl sign -s /boot/efi/EFI/GRUB/shimx64.efi || true
+sbctl sign -s /boot/efi/EFI/GRUB/grubx64.efi || true
+sbctl sign-all
+
+# Pacman hook for auto-signing
+HOOK_PATH="/etc/pacman.d/hooks/99-secureboot-sign.hook"
+mkdir -p "$(dirname "$HOOK_PATH")"
+cat >"$HOOK_PATH" <<'EOF'
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Type=Path
+Target=boot/vmlinuz*
+
+[Action]
+Description=Sign kernel for Secure Boot
+When=PostTransaction
+Exec=/usr/bin/sbctl sign -s /boot/vmlinuz-linux
+EOF
+
+echo "✓ Added pacman hook for kernel auto-signing."
+
+# Ask about theme
+read -rp "🎨 Do you want to install the Minegrub GRUB theme? (y/N): " theme_choice
+if [[ "$theme_choice" =~ ^[Yy]$ ]]; then
+  echo "📥 Installing Minegrub theme..."
   git clone --depth=1 https://github.com/Lxtharia/minegrub-world-sel-theme "$THEME_DIR"
-  if grep -q "^GRUB_THEME=" /etc/default/grub; then
-    sed -i "s|^GRUB_THEME=.*|GRUB_THEME=\"$THEME_DIR/theme.txt\"|" /etc/default/grub
-  else
-    echo "GRUB_THEME=\"$THEME_DIR/theme.txt\"" >>/etc/default/grub
-  fi
+  echo 'GRUB_THEME="/boot/grub/themes/minegrub/theme.txt"' >>/etc/default/grub
   grub-mkconfig -o /boot/grub/grub.cfg
-  echo "✅ Minegrub theme installed successfully!"
-else
-  echo "Skipped GRUB theme installation."
+  echo "✓ Minegrub theme installed."
 fi
+
+echo "=============================================================="
+echo "✅ Secure Boot + GRUB setup complete!"
+echo "=============================================================="
+echo "Reboot with Secure Boot ON. If prompted, enroll the MOK key."
