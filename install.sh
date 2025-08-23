@@ -13,7 +13,8 @@ declare -A MODULES=(
   [5]="Enable system services + SDDM theme"
   [6]="OCR4Linux"
   [7]="Neovim"
-  [8]="All"
+  [8]="Grubsetup"
+  [9]="All"
 )
 
 echo "Select what you want to run:"
@@ -21,7 +22,7 @@ for i in "${!MODULES[@]}"; do
   echo "  $i) ${MODULES[$i]}"
 done
 
-read -rp "Enter number (e.g. 1 or 6 for all): " choice
+read -rp "Enter number (e.g. 1 or 9 for all) [grubsetup won't be included in all]: " choice
 
 run_script() {
   local script="$SCRIPTS_DIR/$1.sh"
@@ -41,7 +42,8 @@ case "$choice" in
 5) run_script "services" ;;
 6) run_script "OCR4Linux" ;;
 7) run_script "neovimsetup" ;;
-8)
+8) run_script "grubsetup" ;;
+9)
   run_script "packages"
   run_script "dotfiles"
   run_script "apps"
