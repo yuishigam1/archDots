@@ -55,6 +55,27 @@ else
 fi
 
 # ------------------------------------------------
+# Detect EFI directory dynamically
+# ------------------------------------------------
+echo "🔍 Detecting EFI mount point..."
+EFI_DIR=$(findmnt -n -o TARGET /boot/efi 2>/dev/null || true)
+if [[ -z "$EFI_DIR" || ! -d "$EFI_DIR/EFI" ]]; then
+  # fallback: look under /boot and /efi
+  for d in /boot /efi; do
+    if [[ -d "$d/EFI" ]]; then
+      EFI_DIR="$d"
+      break
+    fi
+  done
+fi
+
+if [[ -z "$EFI_DIR" || ! -d "$EFI_DIR/EFI" ]]; then
+  echo "❌ Could not detect EFI directory. Exiting."
+  exit 1
+fi
+echo "📂 Using EFI directory: $EFI_DIR"
+
+# ------------------------------------------------
 # Sign binaries
 # ------------------------------------------------
 echo "🔏 Signing EFI binaries..."
@@ -62,15 +83,15 @@ echo "🔏 Signing EFI binaries..."
 # Always sign kernel
 sbctl sign -s /boot/vmlinuz-linux || echo "⚠️ Failed signing kernel"
 
-# Detect installed GRUB EFI dir dynamically
-GRUB_EFI_DIR=$(find /boot/efi/EFI -type d \( -iname "grub*" -o -iname "arch*" \) | head -n1)
+# Sign GRUB + shim if present
+GRUB_EFI_DIR=$(find "$EFI_DIR/EFI" -type d \( -iname "grub*" -o -iname "arch*" \) | head -n1)
 
 if [[ -n "$GRUB_EFI_DIR" ]]; then
   echo "📂 Found GRUB EFI directory at: $GRUB_EFI_DIR"
   [[ -f "$GRUB_EFI_DIR/grubx64.efi" ]] && sbctl sign -s "$GRUB_EFI_DIR/grubx64.efi" || echo "⚠️ grubx64.efi missing"
   [[ -f "$GRUB_EFI_DIR/shimx64.efi" ]] && sbctl sign -s "$GRUB_EFI_DIR/shimx64.efi" || echo "⚠️ shimx64.efi missing"
 else
-  echo "❌ Could not find GRUB EFI directory under /boot/efi/EFI/"
+  echo "❌ Could not find GRUB EFI directory under $EFI_DIR/EFI/"
 fi
 
 echo "=============================================================="
