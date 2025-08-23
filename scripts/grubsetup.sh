@@ -11,7 +11,7 @@ fi
 }
 
 # ---------------- Packages ----------------
-pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbsigntools shim-signed sbctl git
+pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbsigntools shim sbctl git
 
 # ---------------- Detect EFI ----------------
 detect_esp() {
@@ -44,10 +44,6 @@ fi
 
 # ---------------- Install GRUB + shim ----------------
 grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB --recheck --boot-directory="$ESP/boot"
-mkdir -p "$ESP/EFI/GRUB"
-cp -f /usr/share/shim-signed/shimx64.efi "$ESP/EFI/GRUB/"
-cp -f /usr/share/shim-signed/MokManager.efi "$ESP/EFI/GRUB/"
-cp -f "$ESP/EFI/GRUB/shimx64.efi" "$ESP/EFI/BOOT/BOOTX64.EFI"
 
 # ---------------- GRUB config ----------------
 [[ -f /etc/default/grub ]] || cat >/etc/default/grub <<'EOF'
@@ -62,19 +58,11 @@ EOF
 
 grub-mkconfig -o "$ESP/grub/grub.cfg"
 
-# ---------------- Sign EFI binaries ----------------
-echo "Signing EFI binaries..."
-sbctl sign -s "$ESP/EFI/GRUB/shimx64.efi"
-sbctl sign -s "$ESP/EFI/GRUB/grubx64.efi"
-for f in "$ESP/grub/x86_64-efi/"*.efi; do
-  [[ -f "$f" ]] && sbctl sign -s "$f"
-done
+# ---------------- Sign EFI binaries & kernels ----------------
+echo "Signing EFI binaries + kernel/initramfs..."
+sbctl sign-all
 
-# ---------------- Sign kernels ----------------
-for k in /boot/vmlinuz-*; do sbctl sign -s "$k"; done
-for i in /boot/initramfs-*.img /boot/initramfs-*.img.old; do [[ -f "$i" ]] && sbctl sign -s "$i"; done
-
-# ---------------- Pacman hooks ----------------
+# ---------------- Pacman hook for auto-sign ----------------
 HOOK_DIR="/etc/pacman.d/hooks"
 mkdir -p "$HOOK_DIR"
 cat >"$HOOK_DIR/95-secureboot-resign.hook" <<'EOF'
@@ -95,5 +83,5 @@ EOF
 echo "=============================================================="
 echo "✅ GRUB + Secure Boot setup complete!"
 echo "Reboot with Secure Boot ON and shim should load Arch + Windows."
-echo "MOK keys already enrolled with sbctl. No Setup Mode required."
+echo "Keys are already managed by sbctl. No Setup Mode required."
 echo "=============================================================="
