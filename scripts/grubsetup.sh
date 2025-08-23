@@ -23,12 +23,6 @@ detect_esp() {
     echo /boot/efi
     return
   fi
-  local mp
-  mp="$(lsblk -o MOUNTPOINT,FSTYPE,PARTFLAGS -nr | awk '$2 ~ /vfat/ && $3 ~ /esp|boot/ {print $1}' | head -n1)"
-  [[ -n "${mp:-}" ]] && {
-    echo "$mp"
-    return
-  }
   echo "ERROR: EFI partition not mounted at /boot or /boot/efi" >&2
   exit 1
 }
@@ -42,7 +36,7 @@ if ! sbctl status &>/dev/null; then
   sbctl create-keys --yes
 fi
 
-# ---------------- Install GRUB + shim ----------------
+# ---------------- Install GRUB ----------------
 grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB --recheck --boot-directory="$ESP/boot"
 
 # ---------------- GRUB config ----------------
@@ -58,27 +52,32 @@ EOF
 
 grub-mkconfig -o "$ESP/grub/grub.cfg"
 
-# ---------------- Sign EFI binaries & kernels ----------------
+# ---------------- Sign all EFI + kernels ----------------
 echo "Signing EFI binaries + kernel/initramfs..."
-sbctl sign-all
+sbctl sign-all --esp "$ESP"
 
 # ---------------- Pacman hook for auto-sign ----------------
 HOOK_DIR="/etc/pacman.d/hooks"
 mkdir -p "$HOOK_DIR"
-cat >"$HOOK_DIR/95-secureboot-resign.hook" <<'EOF'
+cat >"$HOOK_DIR/95-secureboot-resign.hook" <<EOF
 [Trigger]
 Operation=Install
 Operation=Upgrade
 Type=Path
 Target=boot/vmlinuz-*
 Target=boot/initramfs-*.img
-Target=efi/EFI/GRUB/*.efi
+Target=EFI/GRUB/*.efi
 
 [Action]
 Description=Secure Boot: sign EFI/kernel (MOK)
 When=PostTransaction
-Exec=/usr/bin/sbctl sign-all
+Exec=/usr/bin/sbctl sign-all --esp "$ESP"
 EOF
+
+# ---------------- Optional fallback ----------------
+mkdir -p "$ESP/EFI/Boot"
+cp -f "$ESP/EFI/GRUB/shimx64.efi" "$ESP/EFI/Boot/bootx64.efi"
+cp -f "$ESP/EFI/GRUB/grubx64.efi" "$ESP/EFI/Boot/grubx64.efi"
 
 echo "=============================================================="
 echo "✅ GRUB + Secure Boot setup complete!"
