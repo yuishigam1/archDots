@@ -1,99 +1,99 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=============================================================="
-echo "⚙️  Configuring Secure Boot with shim + sbctl..."
-echo "=============================================================="
-
-# ------------------------------------------------
-# Root check
-# ------------------------------------------------
+# ---------------- Safety ----------------
 if [[ $EUID -ne 0 ]]; then
-  echo "This script needs root privileges. Run with sudo."
+  exec sudo bash "$0" "$@"
+fi
+[[ -f /etc/arch-release ]] || {
+  echo "This script is for Arch Linux."
   exit 1
-fi
+}
 
-# ------------------------------------------------
-# Install required packages
-# ------------------------------------------------
-echo "📦 Installing required packages..."
-pacman -Syu --needed --noconfirm grub efibootmgr os-prober sbctl shim-signed git
+# ---------------- Packages ----------------
+pacman -Sy --needed --noconfirm grub efibootmgr os-prober sbsigntools shim-signed sbctl git
 
-# ------------------------------------------------
-# Generate Secure Boot keys
-# ------------------------------------------------
-echo "🔑 Generating Secure Boot keys..."
-if ! sbctl status | grep -q "Owner UUID"; then
-  sbctl create-keys
-else
-  echo "✓ Secure boot keys have already been created!"
-fi
-
-# ------------------------------------------------
-# Install GRUB
-# ------------------------------------------------
-echo "📦 Installing GRUB to EFI..."
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-
-# ------------------------------------------------
-# Run os-prober + update grub.cfg
-# ------------------------------------------------
-echo "🔎 Running os-prober..."
-os-prober || true
-grub-mkconfig -o /boot/grub/grub.cfg
-
-# ------------------------------------------------
-# Install GRUB theme (optional)
-# ------------------------------------------------
-THEME_DIR="/boot/grub/themes/minegrub-world-selection"
-if [[ -d "$THEME_DIR" ]]; then
-  echo "🎨 Applying GRUB theme..."
-  sed -i 's|^#\?GRUB_THEME=.*|GRUB_THEME="'"$THEME_DIR/theme.txt"'"|' /etc/default/grub
-  grub-mkconfig -o /boot/grub/grub.cfg
-else
-  echo "⚠️ Theme not found at $THEME_DIR, skipping..."
-fi
-
-# ------------------------------------------------
-# Detect EFI directory dynamically
-# ------------------------------------------------
-echo "🔍 Detecting EFI mount point..."
-EFI_DIR=$(findmnt -n -o TARGET /boot/efi 2>/dev/null || true)
-if [[ -z "$EFI_DIR" || ! -d "$EFI_DIR/EFI" ]]; then
-  # fallback: look under /boot and /efi
-  for d in /boot /efi; do
-    if [[ -d "$d/EFI" ]]; then
-      EFI_DIR="$d"
-      break
-    fi
-  done
-fi
-
-if [[ -z "$EFI_DIR" || ! -d "$EFI_DIR/EFI" ]]; then
-  echo "❌ Could not detect EFI directory. Exiting."
+# ---------------- Detect EFI ----------------
+detect_esp() {
+  if findmnt -no FSTYPE /boot 2>/dev/null | grep -qi vfat; then
+    echo /boot
+    return
+  fi
+  if findmnt -no FSTYPE /boot/efi 2>/dev/null | grep -qi vfat; then
+    echo /boot/efi
+    return
+  fi
+  local mp
+  mp="$(lsblk -o MOUNTPOINT,FSTYPE,PARTFLAGS -nr | awk '$2 ~ /vfat/ && $3 ~ /esp|boot/ {print $1}' | head -n1)"
+  [[ -n "${mp:-}" ]] && {
+    echo "$mp"
+    return
+  }
+  echo "ERROR: EFI partition not mounted at /boot or /boot/efi" >&2
   exit 1
+}
+ESP="$(detect_esp)"
+echo "EFI directory: $ESP"
+
+# ---------------- Secure Boot keys ----------------
+SB_DIR="/etc/secureboot"
+mkdir -p "$SB_DIR/keys"
+if ! sbctl status &>/dev/null; then
+  sbctl create-keys --yes
 fi
-echo "📂 Using EFI directory: $EFI_DIR"
 
-# ------------------------------------------------
-# Sign binaries
-# ------------------------------------------------
-echo "🔏 Signing EFI binaries..."
+# ---------------- Install GRUB + shim ----------------
+grub-install --target=x86_64-efi --efi-directory="$ESP" --bootloader-id=GRUB --recheck --boot-directory="$ESP/boot"
+mkdir -p "$ESP/EFI/GRUB"
+cp -f /usr/share/shim-signed/shimx64.efi "$ESP/EFI/GRUB/"
+cp -f /usr/share/shim-signed/MokManager.efi "$ESP/EFI/GRUB/"
+cp -f "$ESP/EFI/GRUB/shimx64.efi" "$ESP/EFI/BOOT/BOOTX64.EFI"
 
-# Always sign kernel
-sbctl sign -s /boot/vmlinuz-linux || echo "⚠️ Failed signing kernel"
+# ---------------- GRUB config ----------------
+[[ -f /etc/default/grub ]] || cat >/etc/default/grub <<'EOF'
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=5
+GRUB_TIMEOUT_STYLE=menu
+GRUB_DISTRIBUTOR="Arch"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 nowatchdog"
+GRUB_CMDLINE_LINUX=""
+GRUB_DISABLE_OS_PROBER=false
+EOF
 
-# Sign GRUB + shim if present
-GRUB_EFI_DIR=$(find "$EFI_DIR/EFI" -type d \( -iname "grub*" -o -iname "arch*" \) | head -n1)
+grub-mkconfig -o "$ESP/grub/grub.cfg"
 
-if [[ -n "$GRUB_EFI_DIR" ]]; then
-  echo "📂 Found GRUB EFI directory at: $GRUB_EFI_DIR"
-  [[ -f "$GRUB_EFI_DIR/grubx64.efi" ]] && sbctl sign -s "$GRUB_EFI_DIR/grubx64.efi" || echo "⚠️ grubx64.efi missing"
-  [[ -f "$GRUB_EFI_DIR/shimx64.efi" ]] && sbctl sign -s "$GRUB_EFI_DIR/shimx64.efi" || echo "⚠️ shimx64.efi missing"
-else
-  echo "❌ Could not find GRUB EFI directory under $EFI_DIR/EFI/"
-fi
+# ---------------- Sign EFI binaries ----------------
+echo "Signing EFI binaries..."
+sbctl sign -s "$ESP/EFI/GRUB/shimx64.efi"
+sbctl sign -s "$ESP/EFI/GRUB/grubx64.efi"
+for f in "$ESP/grub/x86_64-efi/"*.efi; do
+  [[ -f "$f" ]] && sbctl sign -s "$f"
+done
+
+# ---------------- Sign kernels ----------------
+for k in /boot/vmlinuz-*; do sbctl sign -s "$k"; done
+for i in /boot/initramfs-*.img /boot/initramfs-*.img.old; do [[ -f "$i" ]] && sbctl sign -s "$i"; done
+
+# ---------------- Pacman hooks ----------------
+HOOK_DIR="/etc/pacman.d/hooks"
+mkdir -p "$HOOK_DIR"
+cat >"$HOOK_DIR/95-secureboot-resign.hook" <<'EOF'
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Type=Path
+Target=boot/vmlinuz-*
+Target=boot/initramfs-*.img
+Target=efi/EFI/GRUB/*.efi
+
+[Action]
+Description=Secure Boot: sign EFI/kernel (MOK)
+When=PostTransaction
+Exec=/usr/bin/sbctl sign-all
+EOF
 
 echo "=============================================================="
-echo "✅ GRUB setup & Secure Boot configuration complete!"
+echo "✅ GRUB + Secure Boot setup complete!"
+echo "Reboot with Secure Boot ON and shim should load Arch + Windows."
+echo "MOK keys already enrolled with sbctl. No Setup Mode required."
 echo "=============================================================="
