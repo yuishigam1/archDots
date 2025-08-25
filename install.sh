@@ -13,8 +13,7 @@ declare -A MODULES=(
   [5]="Enable system services + SDDM theme"
   [6]="OCR4Linux"
   [7]="Neovim"
-  [8]="Grubsetup"
-  [9]="All"
+  [8]="All"
 )
 
 echo "Select what you want to run:"
@@ -46,8 +45,7 @@ case "$choice" in
 5) run_script "services" ;;
 6) run_script "OCR4Linux" ;;
 7) run_script "neovimsetup" ;;
-8) run_script "grubsetup" ;;
-9)
+8)
   run_script "packages"
   run_script "dotfiles"
   run_script "apps"
